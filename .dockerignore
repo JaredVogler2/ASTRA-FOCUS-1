@@ -1,0 +1,12 @@
+.git
+.venv
+**/__pycache__
+**/.pytest_cache
+var
+.env
+users.json
+integration_tests
+upstream/.git
+upstream/FF_app/outputs
+upstream/FF_app/data/fleet50.json.gz
+upstream/FF_app/web_flask/data

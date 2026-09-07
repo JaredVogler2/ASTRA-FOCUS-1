@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign in · ASTRA FOCUS</title><link rel="stylesheet" href="/astra-static/app.css"><script src="/astra-static/signin.js" defer></script></head>
+<body class="login-body"><main class="login-card"><a class="brand" href="/"><span class="brand-mark">F</span><span>FOCUS<small>MANUFACTURING OPERATIONS</small></span></a><p class="eyebrow">ASTRA / WORKSPACE ACCESS</p><h1>Your shift.<br>Your next best action.</h1><p class="muted">Aircraft scheduling, team coordination and performance in one workspace.</p>
+{% if demo %}<div class="notice">SYNTHETIC DATA · Demo personas are enabled for this demonstration.</div>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% if demo %}<label>Workspace role<select name="role" id="login-role"><option value="director">Director · Fleet operations</option><option value="vp">Executive · Delivery performance</option><option value="super">Superintendent · Team group</option><option value="flm">First-line manager · Team performance</option><option value="lead">Team lead · Shift execution</option><option value="mechanic">Mechanic · My task list</option></select></label>
+<label id="scope-field" hidden>Assigned scope<select name="scope" id="login-scope"><option value="all">All</option></select></label>
+<template id="scope-teams">{% for team in teams %}<option value="{{ team }}">{{ team }}</option>{% endfor %}</template>
+<template id="scope-groups">{% for group in groups %}<option value="{{ group }}">{{ group }}</option>{% endfor %}</template>
+<template id="scope-mechanics">{% for mechanic in mechanics %}<option value="{{ mechanic }}">{{ mechanic }}</option>{% endfor %}</template>
+{% else %}<label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label>{% endif %}
+<button type="submit" class="primary wide">Open workspace <span aria-hidden="true">→</span></button></form><p class="login-footer">FF scheduling engine · Named crews · Validated plans</p></main></body></html>

@@ -1,0 +1,15 @@
+services:
+  focus:
+    build: .
+    environment:
+      ASTRA_DEMO: '1'
+      ASTRA_AIRCRAFT: '50'
+      ASTRA_LEGACY: '1'
+      ASTRA_STATE_DIR: /app/var
+    ports:
+      - '127.0.0.1:8080:8080'
+    volumes:
+      - focus-state:/app/var
+    restart: unless-stopped
+volumes:
+  focus-state:
