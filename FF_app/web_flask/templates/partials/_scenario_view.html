@@ -1,0 +1,94 @@
+<div id="scenario-view" class="view-content" data-view-content="scenario" style="display: none;">
+    <h2>Priority Impact Analysis</h2>
+    <p>Assign priority ranks to aircraft, then estimate the scheduling impact. Compare multiple scenarios side by side.</p>
+
+    <!-- Priority Assignment Card -->
+    <div class="scenario-controls" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+            <div style="flex: 1; min-width: 300px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 14px;">Aircraft Priority Order</label>
+                <p style="font-size: 12px; color: #888; margin-bottom: 12px;">
+                    Assign rank 1 (highest) through N for aircraft you want to prioritize. Leave as "Any" to let the optimizer decide.
+                </p>
+                <div id="priorityAssignmentGrid" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-width: 360px;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 24px;">
+                <div>
+                    <label for="scenarioLabelInput" style="font-weight: 600; display: block; margin-bottom: 4px; font-size: 13px;">Scenario Label (optional)</label>
+                    <input type="text" id="scenarioLabelInput" placeholder="e.g. Rush Line 1256" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; width: 220px;">
+                </div>
+                <button id="runScenarioBtn" class="cta-button" style="padding: 10px 24px; background: #003581; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                    Estimate Impact
+                </button>
+                <p style="font-size: 11px; color: #888;">Runs instantly (no full optimization)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keep hidden select for JS compatibility -->
+    <select id="scenarioProductSelect" style="display: none;"></select>
+
+    <!-- Spinner -->
+    <div id="scenarioSpinner" style="display: none; text-align: center; padding: 40px;">
+        <div style="border: 4px solid #f3f3f3; border-top: 4px solid #003581; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
+        <p style="color: #666;">Estimating priority impact...</p>
+    </div>
+
+    <!-- Latest Result Detail -->
+    <div id="scenarioResult" class="scenario-result-container" style="display: none;">
+        <div id="scenarioSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;"></div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <h3 id="scenarioResultTitle" style="margin-bottom: 5px; color: #333;"></h3>
+            <p style="font-size: 13px; color: #888; margin-bottom: 15px;">Estimated on: <span id="scenarioResultDate"></span></p>
+            <div style="overflow-x: auto;">
+                <table id="scenarioComparisonTable" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Aircraft</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Rank</th>
+                            <th style="padding: 12px; text-align: right; font-weight: 600;">Tasks</th>
+                            <th style="padding: 12px; text-align: right; font-weight: 600;">Baseline Day</th>
+                            <th style="padding: 12px; text-align: right; font-weight: 600;">Estimated Day</th>
+                            <th style="padding: 12px; text-align: right; font-weight: 600;">Baseline Late</th>
+                            <th style="padding: 12px; text-align: right; font-weight: 600;">Estimated Late</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparison-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <h3 style="margin-bottom: 15px; color: #333;">Resource Contention Details</h3>
+            <div id="contentionDetails" style="font-size: 13px;"></div>
+        </div>
+
+        <div style="background: #FFF3CD; padding: 12px 16px; border-radius: 6px; border-left: 4px solid #FFC107; font-size: 13px; color: #856404;">
+            <strong>Note:</strong> <span id="scenarioNote"></span>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Scenario Comparison -->
+    <div id="scenarioComparisonSection" style="display: none; margin-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="margin: 0;">Scenario Comparison</h3>
+            <button id="clearScenariosBtn" style="padding: 6px 14px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Clear All</button>
+        </div>
+        <div style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <table id="scenarioSideBySideTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <!-- Built dynamically by JS -->
+            </table>
+        </div>
+    </div>
+
+    <div class="saved-scenarios-container" style="margin-top: 20px;">
+        <h3>Previous Estimates</h3>
+        <div id="savedScenariosList">
+            <p style="color: #999;">No estimates run yet.</p>
+        </div>
+    </div>
+</div>

@@ -5,10 +5,19 @@ import secrets
 import time
 from functools import wraps
 from pathlib import Path
+from urllib.parse import urlsplit
 from flask import g, jsonify, redirect, request, session
 from werkzeug.security import check_password_hash
 
 def install_security(app, demo, store):
+    public_origin = (os.environ.get('ASTRA_PUBLIC_ORIGIN') or
+                     os.environ.get('RENDER_EXTERNAL_URL', '')).rstrip('/')
+    if public_origin:
+        origin_parts = urlsplit(public_origin)
+        if (origin_parts.scheme != 'https' or not origin_parts.netloc or
+                origin_parts.path or origin_parts.query or origin_parts.fragment or
+                origin_parts.username or origin_parts.password):
+            raise RuntimeError('ASTRA_PUBLIC_ORIGIN must be an HTTPS origin without a path or credentials.')
     app.config.update(SESSION_COOKIE_NAME='astra_session', SESSION_COOKIE_HTTPONLY=True,
                       SESSION_COOKIE_SAMESITE='Lax', SESSION_COOKIE_SECURE=not demo,
                       PERMANENT_SESSION_LIFETIME=28800, MAX_CONTENT_LENGTH=2*1024*1024)
@@ -46,7 +55,7 @@ def install_security(app, demo, store):
             if not expected or not secrets.compare_digest(str(supplied),str(expected)):
                 return jsonify(error='Session expired. Refresh and try again.',code='csrf_invalid'),403
             origin = request.headers.get('Origin')
-            if origin and origin != request.host_url.rstrip('/'):
+            if origin and origin != (public_origin or request.host_url.rstrip('/')):
                 return jsonify(error='Cross-origin writes are rejected.',code='origin_invalid'),403
         g.actor = session.get('username','anonymous')
 

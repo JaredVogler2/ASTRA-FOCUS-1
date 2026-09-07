@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Crew Board — FF FOCU5{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Crew Board <span class="muted">— team {{ team }} · day {{ day }}</span></h1>
+  <p class="daynav">
+    <a class="btn btn-small" href="/lead?day={{ day - 1 if day > 0 else 0 }}">◀ day {{ day - 1 if day > 0 else 0 }}</a>
+    <a class="btn btn-small" href="/lead?day={{ day + 1 }}">day {{ day + 1 }} ▶</a>
+    {% if team_days %}<span class="muted small">team work days: {{ team_days | join(', ') }}{% if team_days | length >= 14 %}…{% endif %}</span>{% endif %}
+  </p>
+
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th>Mechanic</th><th>{{ shift_labels[1] }}</th><th>{{ shift_labels[2] }}</th><th>{{ shift_labels[3] }}</th></tr></thead>
+    <tbody>
+      {% for mech_id in roster %}
+      <tr>
+        <td class="mono">{{ mech_id }}</td>
+        {% for s in (1, 2, 3) %}
+        <td>
+          {% for chip in board[mech_id][s] %}
+            <span class="chip chip-task" title="{{ chip.name }} ({{ chip.start }}–{{ chip.end }}m)">
+              {{ chip.task_id }} <span class="muted">{{ chip.start }}–{{ chip.end }}</span>{% if chip.uses_overtime %} <em>OT</em>{% endif %}
+            </span>
+          {% else %}<span class="muted small">—</span>{% endfor %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No mechanics rostered on team {{ team }}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<div class="two-col">
+{% macro cause_chips(row) %}
+  {%- for c in row.causes -%}
+    <span class="chip {{ 'chip-info' if c.excusable else 'chip-block' }}"
+          title="{{ c.evidence }} ({{ c.source }})">{{ c.cause }}{% if c.source == 'manual' %} ✓{% endif %}</span>
+  {%- endfor -%}
+{% endmacro %}
+{% macro capture_control(row) %}
+  {% if capture.causes %}
+  <span class="exc-ctl" data-task="{{ row.task_id }}">
+    <select class="exc-cause">
+      {% for c in capture.causes %}
+      <option value="{{ c }}">{{ c }}{% if c in capture.notes_required %} (notes required){% endif %}</option>
+      {% endfor %}
+    </select>
+    <input class="exc-notes" type="text" placeholder="notes" maxlength="240">
+    <button class="btn btn-small exc-apply" type="button">capture excusal</button>
+    <span class="msg exc-msg"></span>
+  </span>
+  {% endif %}
+{% endmacro %}
+<section class="card">
+  <h2>Blocked &amp; unscheduled <span class="muted small">(full crew or wait — OR-1; reasons, never fiction)</span></h2>
+  {% if capture.error %}<p class="chip chip-err" title="{{ capture.error }}">excusal capture unavailable: {{ capture.error }}</p>{% endif %}
+  {% if causes_error %}<p class="chip chip-err" title="{{ causes_error }}">cause attribution unavailable: {{ causes_error }}</p>{% endif %}
+  <h3>Blocked ({{ blocked_total }})</h3>
+  <ul class="list">
+    {% for b in blocked %}
+      <li><span class="mono">{{ b.task_id }}</span> {{ b.name }} — <span class="chip chip-warn">{{ b.reason }}</span>
+          {{ cause_chips(b) }}{{ capture_control(b) }}</li>
+    {% else %}<li class="muted">none</li>{% endfor %}
+    {% if blocked_total > blocked | length %}<li class="muted small">… and {{ blocked_total - blocked | length }} more</li>{% endif %}
+  </ul>
+  <h3>Unscheduled ({{ unscheduled_total }})</h3>
+  <ul class="list">
+    {% for u in unscheduled %}
+      <li><span class="mono">{{ u.task_id }}</span> {{ u.name }} — <span class="chip chip-block">{{ u.reason }}</span>
+          {{ cause_chips(u) }}{{ capture_control(u) }}</li>
+    {% else %}<li class="muted">none</li>{% endfor %}
+    {% if unscheduled_total > unscheduled | length %}<li class="muted small">… and {{ unscheduled_total - unscheduled | length }} more</li>{% endif %}
+  </ul>
+  <p class="muted small">Cause chips are the merged view: auto attribution
+     extended by lead captures (✓ = manual). Excusable causes leave the shift
+     goal denominator (GG-3); notes are required for SAME_TEAM_PREDECESSOR and
+     DURATION_OVERRUN.</p>
+</section>
+
+<section class="card">
+  <h2>Next-best candidates <span class="muted small">(top 10, decomposed score)</span></h2>
+  {% if candidates.error %}
+    <p class="chip chip-err" title="{{ candidates.error }}">candidates unavailable: {{ candidates.error }}</p>
+  {% else %}
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Task</th><th>Score</th><th>Top factors</th><th>Reasons</th></tr></thead>
+    <tbody>
+      {% for c in candidates.rows %}
+      <tr>
+        <td>{{ c.rank if c.rank is not none else loop.index }}</td>
+        <td><span class="mono">{{ c.task_id }}</span><br><span class="muted small">{{ c.name }}</span>
+            {% if c.explanation %}<br><span class="small">{{ c.explanation }}</span>{% endif %}</td>
+        <td>{{ c.score }}</td>
+        <td>{% for f in c.components %}<span class="chip chip-plain">{{ f.name }} +{{ f.points }}</span>{% endfor %}</td>
+        <td>{% for rc in c.reason_codes[:3] %}<span class="chip chip-info">{{ rc }}</span>{% endfor %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No candidates for team {{ team }}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</section>
+</div>
+
+<section class="card">
+  <h2>Shift recap — team {{ team }} · day {{ day }}
+    <span class="muted small">(deterministic content — LB-8: this card IS the no-LLM fallback)</span></h2>
+  {% if recaps.error %}
+    <p class="chip chip-err" title="{{ recaps.error }}">recap unavailable: {{ recaps.error }}</p>
+  {% endif %}
+  <div class="two-col">
+    {% for card in recaps.cards %}
+    <div>
+      <h3>{{ shift_labels[card.shift] }} — attainment {{ card.attainment }}</h3>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-v">{{ card.earned }}/{{ card.goal }}</div>
+          <div class="stat-l">earned / goal points</div></div>
+        <div class="stat"><div class="stat-v">{{ card.streak.streak }}</div>
+          <div class="stat-l">streak (paused ×{{ card.streak.paused_shifts }} — GG-3)</div></div>
+        <div class="stat"><div class="stat-v">{{ card.points_banked }}</div>
+          <div class="stat-l">points banked (team, all-time credited)</div></div>
+      </div>
+      {% if card.excused_points %}
+        <p class="small">excused (visible, never silent — GG-3):
+          <span class="chip chip-info">{{ card.excused_points }} pts</span>
+          {% for e in card.excusals[:3] %}<span class="chip chip-plain" title="{{ e.evidence }}">{{ e.cause }}</span>{% endfor %}
+        </p>
+      {% endif %}
+      <p class="small muted">Top plays (by point value — GG-2):</p>
+      <ul class="list">
+        {% for p in card.top_plays %}
+          <li><span class="mono">{{ p.task_id }}</span>
+              <span class="chip chip-info">{{ p.points }} pts</span>
+              <span class="muted small">{{ p.explanation }}</span></li>
+        {% else %}<li class="muted small">no completions credited this shift</li>{% endfor %}
+      </ul>
+      {% if card.badges %}
+        <p class="small">badges:
+          {% for b in card.badges %}<span class="chip chip-info" title="{{ b.evidence }}">{{ b.badge }}</span>{% endfor %}
+        </p>
+      {% endif %}
+      {% if card.recovery_moments %}
+        <p class="small">recovery moments (fleet-level — PSY-8):
+          {% for r in card.recovery_moments %}<span class="chip chip-ok" title="{{ r.evidence }}">AC {{ r.aircraft }} {{ r.delta_days }}d</span>{% endfor %}
+        </p>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="muted">No recap cards available.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

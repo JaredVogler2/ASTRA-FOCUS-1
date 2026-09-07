@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Shift Command — FF FOCU5{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Shift Command <span class="muted">— team {{ team }} · day {{ day }}</span></h1>
+  <p class="daynav">
+    <a class="btn btn-small" href="/flm?day={{ day - 1 if day > 0 else 0 }}">◀ day {{ day - 1 if day > 0 else 0 }}</a>
+    <a class="btn btn-small" href="/flm?day={{ day + 1 }}">day {{ day + 1 }} ▶</a>
+  </p>
+
+  <div class="bars">
+    {% for s in shifts %}
+    <div class="bar-row">
+      <div class="bar-label">{{ s.label }}</div>
+      {% if s.error %}
+        <span class="chip chip-err" title="{{ s.error }}">shift report unavailable</span>
+      {% elif s.report %}
+        <div class="bar-track"><div class="bar-fill" style="width: {{ s.bar }}%"></div></div>
+        <div class="bar-nums small">
+          attainment <strong>{{ s.report.attainment }}</strong>
+          · goal {{ s.report.goal }} · earned {{ s.report.earned }}
+          {% if s.report.difficulty is not none %} · difficulty {{ s.report.difficulty }}{% endif %}
+          {% if s.report.value_efficiency is not none %} · value-eff {{ s.report.value_efficiency }}{% endif %}
+        </div>
+      {% else %}
+        <span class="muted small">no report</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="muted small">Goal = points of the planned slice; earned = points of
+     work actually done. Points are informational — no raw-points contests (GG-2),
+     rewards disabled.</p>
+</section>
+
+<section class="card">
+  <h2>Progression — team {{ team }} <span class="muted small">(ambient: derived from real completions only — GG-1)</span></h2>
+  {% if progression.error %}
+    <p class="chip chip-err" title="{{ progression.error }}">progression unavailable: {{ progression.error }}</p>
+  {% else %}
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-v">{{ progression.streak.streak if progression.streak else '—' }}</div>
+      <div class="stat-l">shift streak — excused shifts pause, never break (GG-3){% if progression.streak and progression.streak.paused_shifts %} · {{ progression.streak.paused_shifts }} paused{% endif %}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-v">L{{ progression.level.level if progression.level else '—' }}</div>
+      <div class="stat-l">team level · {{ progression.level.xp if progression.level else 0 }} XP (credited completions only, never decays — PSY-4)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-v">{{ progression.badges | length }}</div>
+      <div class="stat-l">badges earned (each names its earning event — GG-4)</div>
+    </div>
+  </div>
+  <p>
+    {% for b in progression.badges %}
+      <span class="chip chip-info" title="{{ b.evidence }} [{{ b.earning_event_ids | join(', ') }}]">{{ b.badge }}</span>
+    {% else %}
+      <span class="muted small">No badges yet — badges are earned, never granted.</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+</section>
+
+<div class="two-col">
+<section class="card">
+  <h2>Leaderboard <span class="muted small">(ranked by attainment + efficiency, difficulty-adjusted — never raw points, GG-2)</span></h2>
+  {% if leaderboard.error %}
+    <p class="chip chip-err" title="{{ leaderboard.error }}">leaderboard unavailable: {{ leaderboard.error }}</p>
+  {% else %}
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Team</th><th>Attainment</th><th>Efficiency</th><th>Difficulty</th></tr></thead>
+    <tbody>
+      {% for row in leaderboard.rows %}
+      <tr class="{{ 'row-mine' if row.mine else '' }}">
+        <td>{{ row.rank }}</td>
+        <td>{{ row.team }}{% if row.mine %} <span class="chip chip-info">you</span>{% endif %}
+          {% if row.needs_support %}
+            <span class="chip chip-warn" title="PSY-5: framed as needs-support with excusal context — never shamed">needs support</span>
+            {% if row.support and row.support.top_causes %}
+              <span class="muted small">absorbing:
+                {% for c in row.support.top_causes %}{{ c.cause }} ×{{ c.count }}{% if not loop.last %}, {% endif %}{% endfor %}
+              </span>
+            {% endif %}
+          {% endif %}
+        </td>
+        <td>{{ row.attainment }}</td>
+        <td>{{ row.efficiency }}</td>
+        <td>{{ row.difficulty }}</td>
+      </tr>
+      {% else %}<tr><td colspan="5" class="muted">no leaderboard rows</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Bottom of table is framed as needs-support with its
+     excusal context — help, never shame (PSY-5). No individual rankings (§G8).</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Unscheduled causes <span class="muted small">— team {{ team }}</span></h2>
+  <ul class="list">
+    {% for reason, n in causes %}
+      <li><span class="chip chip-block">{{ reason }}</span> × {{ n }}</li>
+    {% else %}
+      <li class="muted">No unscheduled work for team {{ team }} — every task fielded a full crew (OR-1).</li>
+    {% endfor %}
+  </ul>
+</section>
+</div>
+
+<section class="card">
+  <h2>Disruption cause pareto <span class="muted small">— team {{ team }} (merged: auto attribution + lead captures)</span></h2>
+  {% if pareto.error %}
+    <p class="chip chip-err" title="{{ pareto.error }}">cause pareto unavailable: {{ pareto.error }}</p>
+  {% else %}
+  <div class="stat-row">
+    <div class="stat"><div class="stat-v">{{ pareto.excused }}</div><div class="stat-l">excusable (leave goal denominator, GG-3)</div></div>
+    <div class="stat"><div class="stat-v">{{ pareto.owned }}</div><div class="stat-l">not excusable (team-owned, stay in goal)</div></div>
+  </div>
+  <ul class="list">
+    {% for row in pareto.rows %}
+      <li>
+        <span class="chip {{ 'chip-info' if row.excusable else 'chip-block' }}">{{ row.cause }}</span>
+        × {{ row.count }}
+        {% if row.excusable %}<span class="muted small">excusable</span>{% else %}<span class="muted small">not excusable</span>{% endif %}
+        {% if row.manual %}<span class="muted small">· {{ row.manual }} manual capture(s)</span>{% endif %}
+      </li>
+    {% else %}
+      <li class="muted">No disruption causes attributed for team {{ team }}.</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

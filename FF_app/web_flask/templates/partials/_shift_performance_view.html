@@ -1,0 +1,714 @@
+<!-- Shift Performance View - "Do What's Prioritized" Dashboard -->
+<div id="shift-performance-view" class="view-content">
+    <!-- Controls and Filters -->
+    <div class="shift-performance-controls">
+        <div class="control-section">
+            <h2>📊 Do What's Prioritized - Shift Performance</h2>
+            <p class="subtitle">Comparing most recent schedule vs previous schedule</p>
+        </div>
+
+        <div class="shift-selector-group">
+            <div id="performanceScheduleInfo" class="schedule-info">
+                <div class="info-item">
+                    <span class="label">Performance For:</span>
+                    <span id="performanceShiftInfo" class="value highlight">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Current Schedule:</span>
+                    <span id="currentScheduleName" class="value">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Previous Schedule:</span>
+                    <span id="previousScheduleName" class="value">Loading...</span>
+                </div>
+            </div>
+            <div class="filter-group">
+                <button id="refreshPerformanceBtn" class="btn-primary">🔄 Refresh Performance</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="performanceLoading" class="loading-message" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading performance data...</p>
+    </div>
+
+    <!-- No Data State -->
+    <div id="performanceNoData" class="no-data-message" style="display: none;">
+        <p>No performance data available for selected shift.</p>
+        <p>Click "Show Schedule Selection" to calculate performance from schedule files.</p>
+    </div>
+
+    <!-- Performance Dashboard -->
+    <div id="performanceDashboard" style="display: none;">
+        <!-- Factory-Level Score Card -->
+        <div class="performance-card factory-card">
+            <div class="card-header">
+                <h2>🏭 Factory Performance</h2>
+                <div class="grade-display" id="factoryGrade">-</div>
+            </div>
+            <div class="card-body">
+                <div class="score-metrics">
+                    <div class="metric">
+                        <label>Score:</label>
+                        <span id="factoryScore" class="score-value">0.0%</span>
+                    </div>
+                    <div class="metric">
+                        <label>Points Earned:</label>
+                        <span id="factoryEarnedPoints">0</span> / <span id="factoryPlannedPoints">0</span>
+                    </div>
+                </div>
+                <div class="task-breakdown">
+                    <div class="breakdown-item">
+                        <span class="icon">✅</span>
+                        <span class="label">Completed:</span>
+                        <span id="factoryTasksCompleted" class="value">0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="icon">📋</span>
+                        <span class="label">Planned:</span>
+                        <span id="factoryTasksPlanned" class="value">0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="icon">❌</span>
+                        <span class="label">Incomplete:</span>
+                        <span id="factoryTasksIncomplete" class="value">0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="icon">📝</span>
+                        <span class="label">With Reason:</span>
+                        <span id="factoryTasksWithReason" class="value">0</span>
+                    </div>
+                    <div class="breakdown-item warning">
+                        <span class="icon">⚠️</span>
+                        <span class="label">No Reason:</span>
+                        <span id="factoryTasksNoReason" class="value">0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="icon">➕</span>
+                        <span class="label">Unscheduled:</span>
+                        <span id="factoryUnscheduled" class="value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Superintendent Scores -->
+        <div id="superintendentScores" class="superintendent-section">
+            <h3>👔 Superintendent Performance</h3>
+            <div id="superintendentCards" class="performance-grid">
+                <!-- Superintendent cards will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Team Scores -->
+        <div id="teamScores" class="team-section">
+            <h3>👥 Team Performance</h3>
+            <div class="team-filters">
+                <label>Filter by Superintendent:</label>
+                <select id="superintendentFilter">
+                    <option value="all">All Superintendents</option>
+                </select>
+            </div>
+            <div id="teamCards" class="performance-grid">
+                <!-- Team cards will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Task Details Modal -->
+        <div id="taskDetailsModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Task Details - <span id="modalTeamName"></span></h3>
+                    <span class="modal-close" onclick="closeTaskDetailsModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="taskDetailsContent">
+                        <!-- Task details will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delay Reason Entry Modal -->
+        <div id="delayReasonModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Enter Delay Reason</h3>
+                    <span class="modal-close" onclick="closeDelayReasonModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="delayReasonForm">
+                        <input type="hidden" id="delayTaskSOI" />
+                        <input type="hidden" id="delayLineNumber" />
+                        <input type="hidden" id="delayShiftDate" />
+                        <input type="hidden" id="delayShiftNumber" />
+                        <input type="hidden" id="delayTeam" />
+
+                        <div class="form-group">
+                            <label>Task:</label>
+                            <span id="delayTaskDisplay" class="form-value"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Aircraft Line Number:</label>
+                            <span id="delayLineDisplay" class="form-value" style="font-weight: 600; color: #2563eb;"></span>
+                            <span style="font-size: 0.85em; color: #6b7280; margin-left: 8px;">(All predecessors are on this aircraft)</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="delayReasonSelect">Delay Reason: *</label>
+                            <select id="delayReasonSelect" required onchange="handleDelayReasonChange()">
+                                <option value="">Select reason...</option>
+                            </select>
+                        </div>
+
+                        <!-- Held Predecessor Details Container (shown when HELD_PREDECESSOR selected) -->
+                        <div id="heldPredecessorContainer" style="display: none;">
+                            <div class="form-group">
+                                <label style="font-weight: 600; margin-bottom: 10px; display: block;">Predecessor Task(s) That Held Up This Work:</label>
+                                <div id="predecessorEntriesList">
+                                    <!-- Predecessor entries will be added here dynamically -->
+                                </div>
+                                <button type="button" class="btn-secondary" onclick="addDelayPredecessorEntry()" style="margin-top: 8px;">
+                                    + Add Another Predecessor
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="delayNotes">Additional Notes:</label>
+                            <textarea id="delayNotes" rows="3" placeholder="Optional additional details..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="delayEnteredBy">Entered By: *</label>
+                            <input type="text" id="delayEnteredBy" placeholder="Your name (required)" required />
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Save Delay Reason</button>
+                            <button type="button" class="btn-secondary" onclick="closeDelayReasonModal()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Shift Performance Specific Styles */
+.shift-performance-controls {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.shift-performance-controls h2 {
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+}
+
+.subtitle {
+    color: #7f8c8d;
+    margin: 0 0 20px 0;
+}
+
+.shift-selector-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.schedule-info {
+    display: flex;
+    gap: 30px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #3498db;
+    flex: 1;
+}
+
+.schedule-info .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.schedule-info .label {
+    font-size: 0.85em;
+    color: #6c757d;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.schedule-info .value {
+    font-size: 1.1em;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.schedule-info .value.highlight {
+    font-size: 1.2em;
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.control-section {
+    margin-bottom: 15px;
+}
+
+.schedule-selectors {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.help-text {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: #495057;
+}
+
+/* Performance Cards */
+.performance-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.factory-card {
+    border-left: 5px solid #3498db;
+}
+
+.factory-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.factory-card h2 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.grade-display {
+    font-size: 2.5em;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 8px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.grade-A-plus, .grade-A {
+    background: #27ae60;
+    color: white;
+}
+
+.grade-B {
+    background: #3498db;
+    color: white;
+}
+
+.grade-C {
+    background: #f39c12;
+    color: white;
+}
+
+.grade-D {
+    background: #e67e22;
+    color: white;
+}
+
+.grade-F {
+    background: #e74c3c;
+    color: white;
+}
+
+.score-metrics {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.score-metrics .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.score-metrics label {
+    font-weight: 600;
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.score-value {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.task-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #ecf0f1;
+}
+
+.breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breakdown-item .icon {
+    font-size: 1.2em;
+}
+
+.breakdown-item .label {
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.breakdown-item .value {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-left: auto;
+}
+
+.breakdown-item.warning .value {
+    color: #e74c3c;
+}
+
+/* Superintendent and Team Sections */
+.superintendent-section, .team-section {
+    margin-top: 30px;
+}
+
+.superintendent-section h3, .team-section h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #3498db;
+}
+
+.performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.superintendent-card, .team-card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.superintendent-card {
+    border-left: 4px solid #9b59b6;
+}
+
+.team-card {
+    border-left: 4px solid #1abc9c;
+}
+
+.superintendent-card:hover, .team-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.card-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.card-title h4 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.grade-badge {
+    font-size: 1.5em;
+    font-weight: bold;
+    padding: 5px 15px;
+    border-radius: 4px;
+}
+
+.mini-metrics {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ecf0f1;
+}
+
+.mini-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.mini-metric .label {
+    font-size: 0.75em;
+    color: #95a5a6;
+}
+
+.mini-metric .value {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Loading and No Data States */
+.loading-message, .no-data-message {
+    text-align: center;
+    padding: 60px 20px;
+    color: #7f8c8d;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 800px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+    background: #3498db;
+    color: white;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.modal-close {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-close:hover {
+    color: #ecf0f1;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-value {
+    display: block;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    color: #495057;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+/* Panel Styles */
+.panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.panel-header {
+    background: #e9ecef;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-header h3 {
+    margin: 0;
+    color: #495057;
+    font-size: 1em;
+}
+
+.panel-content {
+    padding: 15px;
+}
+
+.btn-collapse {
+    background: transparent;
+    border: 1px solid #6c757d;
+    color: #6c757d;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.btn-collapse:hover {
+    background: #6c757d;
+    color: white;
+}
+
+/* Task Details Table */
+.task-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.task-details-table th {
+    background: #f8f9fa;
+    padding: 10px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+}
+
+.task-details-table td {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.task-details-table tr:hover {
+    background: #f8f9fa;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.status-completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-incomplete {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-unscheduled {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.delay-reason-link {
+    color: #3498db;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.delay-reason-link:hover {
+    color: #2980b9;
+}
+
+.team-filters {
+    margin-bottom: 15px;
+}
+
+.team-filters label {
+    margin-right: 10px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.team-filters select {
+    padding: 6px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+</style>
+
+<script>
+// Shift Performance JavaScript will be added to dashboard-js.js
+// This script tag is just a placeholder to show where the functionality goes
+</script>

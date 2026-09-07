@@ -1,0 +1,15 @@
+{
+  "all_scheduled_or_reasoned": true,
+  "fleet_lateness_range": [
+    460,
+    775
+  ],
+  "otd_range": [
+    14,
+    20
+  ],
+  "scheduled_rate_min": 1.0,
+  "total_tasks": 55529,
+  "unscheduled_max": 0,
+  "zero_violations": true
+}

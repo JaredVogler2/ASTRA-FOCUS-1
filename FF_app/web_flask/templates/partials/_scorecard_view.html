@@ -1,0 +1,151 @@
+<!-- Scorecard View (NEW — fortnight increment: graded execution history via the /api/ff bridge; additive only, read-only) -->
+<div id="scorecard-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Scorecard</h2>
+        <p class="view-description">
+            Graded execution history: attainment scored per <b>shift, day,
+            and week</b> with trend classification, sliced by team,
+            superintendent position (G1&ndash;G4), building, shift crew, or
+            the whole fleet. Goal follows GG-3 (excused work leaves the
+            denominator <b>visibly</b>); off-plan completions never earn
+            toward a goal &mdash; they are graded separately as
+            <b>compliance</b> (in-plan share of completed value). Grade
+            bands are placeholders shown in the header. SYNTHETIC mock data.
+        </p>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:end; margin-bottom:16px; flex-wrap:wrap;">
+        <div><label style="font-size:11px; color:#777; display:block;">Slice</label>
+            <select id="scSlice" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+                <option value="team">Team</option>
+                <option value="group">Position (Superintendent G1&ndash;G4)</option>
+                <option value="building">Building</option>
+                <option value="shift">Shift crew (S1/S2/S3)</option>
+                <option value="fleet">Fleet</option>
+            </select></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Period</label>
+            <select id="scPeriod" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+                <option value="week">Week</option>
+                <option value="day">Day</option>
+                <option value="shift">Shift</option>
+            </select></div>
+        <div id="scStatus" style="font-size:12px; color:#777; margin-left:8px;"></div>
+        <div id="scRubric" style="font-size:11px; color:#999; margin-left:auto;"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 400px; gap:20px; align-items:start;">
+        <div>
+            <h3 style="margin:0 0 8px;">Grades</h3>
+            <div style="max-height:560px; overflow:auto; border:1px solid #e0e0e0; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead style="position:sticky; top:0; background:#f5f5f7;">
+                        <tr>
+                            <th style="text-align:left; padding:8px;">Slice</th>
+                            <th style="text-align:left; padding:8px;">Period</th>
+                            <th style="text-align:center; padding:8px;">Grade</th>
+                            <th style="text-align:right; padding:8px;">Attainment</th>
+                            <th style="text-align:right; padding:8px;">Goal</th>
+                            <th style="text-align:right; padding:8px;">Earned</th>
+                            <th style="text-align:right; padding:8px;">Excused</th>
+                            <th style="text-align:right; padding:8px;">Compliance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scRows"></tbody>
+                </table>
+            </div>
+        </div>
+        <div>
+            <h3 style="margin:0 0 8px;">Trend (day grain)</h3>
+            <div id="scTrends" style="border:1px solid #e0e0e0; border-radius:8px; padding:10px; font-size:12px;"></div>
+            <h3 style="margin:16px 0 8px;">Week over week</h3>
+            <div id="scWow" style="border:1px solid #e0e0e0; border-radius:8px; padding:10px; font-size:12px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+    function fail(msg) {
+        document.getElementById('scStatus').innerHTML =
+            '<span style="color:#c62828;">' + esc(msg) + '</span>';
+    }
+    var GRADE_COLORS = {A:'#2e7d32', B:'#689f38', C:'#f9a825', D:'#ef6c00', F:'#c62828'};
+    function chip(g) {
+        return '<span style="display:inline-block; min-width:22px; text-align:center;' +
+               ' padding:2px 7px; border-radius:10px; color:#fff; font-weight:700;' +
+               ' background:' + (GRADE_COLORS[g] || '#777') + ';">' + esc(g) + '</span>';
+    }
+    var ARROWS = {improving:'&#9650;', flat:'&#9654;', declining:'&#9660;'};
+    var ARROW_COLORS = {improving:'#2e7d32', flat:'#777', declining:'#c62828'};
+
+    function render(d) {
+        document.getElementById('scRubric').textContent =
+            'rubric (placeholder): ' + (d.meta.grade_bands || [])
+                .map(function (b) { return '≥' + b[0] + ':' + b[1]; })
+                .join(' ') + ' else F' + (d.mock_data ? ' · SYNTHETIC mock data' : '');
+        document.getElementById('scRows').innerHTML = (d.rows || []).map(function (r) {
+            return '<tr style="border-top:1px solid #eee;">' +
+                '<td style="padding:7px 8px; font-weight:600;">' + esc(r.slice) + '</td>' +
+                '<td style="padding:7px 8px;">' + esc(r.period) + '</td>' +
+                '<td style="padding:7px 8px; text-align:center;">' + chip(r.grade) + '</td>' +
+                '<td style="padding:7px 8px; text-align:right;">' + (100 * r.attainment).toFixed(1) + '%</td>' +
+                '<td style="padding:7px 8px; text-align:right;">' + r.goal + '</td>' +
+                '<td style="padding:7px 8px; text-align:right;">' + r.earned + '</td>' +
+                '<td style="padding:7px 8px; text-align:right; color:#e65100;">' +
+                    (r.excused_points ? r.excused_points : '') + '</td>' +
+                '<td style="padding:7px 8px; text-align:right;">' + (100 * r.compliance).toFixed(1) + '%</td>' +
+                '</tr>';
+        }).join('') ||
+            '<tr><td colspan="8" style="padding:12px; color:#777;">No graded periods.</td></tr>';
+
+        var trows = ((d.trends || {}).day || []).map(function (t) {
+            return '<div style="display:flex; justify-content:space-between; padding:3px 0;">' +
+                '<span style="font-weight:600;">' + esc(t.slice) + '</span>' +
+                '<span><span style="color:' + ARROW_COLORS[t.direction] + ';">' +
+                (ARROWS[t.direction] || '') + ' ' + esc(t.direction) + '</span>' +
+                ' · ' + (100 * t.first).toFixed(1) + '% → ' +
+                (100 * t.last).toFixed(1) + '% (' +
+                (t.delta >= 0 ? '+' : '') + (100 * t.delta).toFixed(1) + ' pts)</span></div>';
+        }).join('');
+        document.getElementById('scTrends').innerHTML =
+            trows || '<span style="color:#777;">No trend series.</span>';
+
+        var wrows = (d.week_over_week || []).map(function (w) {
+            var col = w.delta > 0 ? '#2e7d32' : (w.delta < 0 ? '#c62828' : '#777');
+            return '<div style="display:flex; justify-content:space-between; padding:3px 0;">' +
+                '<span style="font-weight:600;">' + esc(w.slice) + '</span>' +
+                '<span>W' + w.from_week + ' → W' + w.to_week +
+                ' <span style="color:' + col + '; font-weight:700;">' +
+                (w.delta >= 0 ? '+' : '') + (100 * w.delta).toFixed(1) + ' pts</span></span></div>';
+        }).join('');
+        document.getElementById('scWow').innerHTML =
+            wrows || '<span style="color:#777;">Only one week graded so far.</span>';
+    }
+
+    function load() {
+        var slice = document.getElementById('scSlice').value;
+        var period = document.getElementById('scPeriod').value;
+        document.getElementById('scStatus').textContent = 'loading…';
+        fetch('/api/ff/scorecard?slice=' + encodeURIComponent(slice) +
+              '&period=' + encodeURIComponent(period))
+            .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
+            .then(function (res) {
+                if (!res.ok) return fail(res.d.error || 'scorecard failed');
+                document.getElementById('scStatus').textContent = '';
+                render(res.d);
+            })
+            .catch(function (e) { fail('FF backend unreachable: ' + e); });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('scSlice').addEventListener('change', load);
+        document.getElementById('scPeriod').addEventListener('change', load);
+        load();
+    });
+})();
+</script>

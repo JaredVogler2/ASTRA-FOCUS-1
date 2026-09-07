@@ -2,17 +2,29 @@
   "engine": {
     "repository": "JaredVogler2/FABLE_FOCUS_REVIEW",
     "commit": "61d6776ada470980e837d761ef24a3508496d757",
-    "path": "upstream/FF_app",
-    "storage": "private git submodule"
+    "path": "FF_app",
+    "storage": "ordinary files committed in ASTRA-FOCUS-1",
+    "notes": "Original executable source and tests bundled; template assets localized. Reference repository access is not required."
   },
   "original_focus_reference": {
     "repository": "JaredVogler2/MAX_FOCUS_1",
     "commit": "1e4ce26424fb89967865a4471d31e7159509c626",
-    "paths": ["MAX/max/core/config.py", "MAX/web_app_flask", "README.md"]
+    "paths": [
+      "MAX/max/core/config.py",
+      "MAX/web_app_flask",
+      "README.md"
+    ]
   },
   "review_and_site_reference": {
     "repository": "JaredVogler2/ASTRA-SEPT-6",
     "commit": "cfeb5d288ee555ad2a334becbef1eb01b2eb8f19",
-    "paths": ["STEERING.md", "01_review", "03_shift_performance", "deploy", "lib/scheduler.ts", "app/page.tsx"]
+    "paths": [
+      "STEERING.md",
+      "01_review",
+      "03_shift_performance",
+      "deploy",
+      "lib/scheduler.ts",
+      "app/page.tsx"
+    ]
   }
 }

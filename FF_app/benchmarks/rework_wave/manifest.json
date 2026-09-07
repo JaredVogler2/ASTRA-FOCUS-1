@@ -1,0 +1,27 @@
+{
+  "id": "rework_wave",
+  "description": "200 rework tasks injected via the generator's rework pattern (parent-gated leaves).",
+  "recipe": {
+    "aircraft": 50,
+    "seed": 20260710,
+    "tasks_per_aircraft": null,
+    "teams": 20,
+    "mechanics": 680,
+    "task_universe": 6500,
+    "overrides": [
+      {
+        "fn": "rework_wave",
+        "params": {
+          "count": 200,
+          "seed": 20260710
+        }
+      }
+    ]
+  },
+  "budgets": {
+    "schedule_wall_s": 60,
+    "validate_violations": 0
+  },
+  "mock_data": true,
+  "schema_version": 1
+}

@@ -17,7 +17,7 @@ flowchart TD
 
 ## Integration boundaries
 
-- The private submodule preserves original source identity and all inherited source files. No original source file is patched.
+- The original engine and Flask dashboard source are ordinary files in `FF_app`. Reference revisions are retained in `sources.lock.json`; there is no repository dependency. Template changes load checked-in browser libraries and the included PNG. Scheduling/domain code and original tests match the referenced source bytes.
 - FF remains responsible for task state, scheduling, CPM, constraint checking, economics, factor scoring, disruption policy and derived game events.
 - ASTRA stores plan records, immutable shift-baseline references, planning roster settings, handover notes, write-audit records and idempotency receipts in SQLite with WAL and foreign keys enabled.
 - Original FF actuals, commitments, excusals, envelopes and game-event files are routed to `ASTRA_STATE_DIR` through the existing environment seams.
@@ -26,7 +26,7 @@ flowchart TD
 
 ## Identity
 
-All application requests pass a common session boundary. Production login uses a server account file; the account's role and scope are reapplied from that file on every request. Client-supplied roles and scopes do not override it. CSRF tokens and same-origin validation protect writes. Cookies are HttpOnly, SameSite=Lax, and Secure outside explicit demo mode.
+All application requests pass a common session boundary. Production login uses a server account file loaded at startup; the account's role and scope are reapplied from that server-owned configuration on every request. Restart after updating the account file. Client-supplied roles and scopes do not override it. CSRF tokens and same-origin validation protect writes. Cookies are HttpOnly, SameSite=Lax, and Secure outside explicit demo mode.
 
 The legacy comparison is limited to director and executive identities because its inherited read models expose full-fleet data. Its fixed read bridge calls the existing FF API functions with the **current user session**, replacing the shared `director/all` service-login transport. Legacy mutations return a named `legacy_read_only` response. Operational writes are made in ASTRA.
 

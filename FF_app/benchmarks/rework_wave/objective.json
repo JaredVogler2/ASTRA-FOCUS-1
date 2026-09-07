@@ -1,0 +1,12 @@
+{
+  "metrics": [
+    "scheduled_rate",
+    "violations",
+    "fleet_lateness_days",
+    "otd",
+    "makespan",
+    "controllable_usd",
+    "wall_s",
+    "reproducibility_hash"
+  ]
+}

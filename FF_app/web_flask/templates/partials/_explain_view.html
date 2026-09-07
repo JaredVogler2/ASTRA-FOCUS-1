@@ -1,0 +1,137 @@
+<!-- Explain View (NEW — FF_app explain/candidates via the /api/ff bridge; additive only, read-only) -->
+<div id="explain-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Explain</h2>
+        <p class="view-description">
+            "Why these tasks next?" — FF_app's ranked candidates for a team
+            with every score <b>decomposed into named factors</b> (GG-4). The
+            deterministic explanation is always present (LB-8); when the
+            constrained LLM layer produced a narrative that survived the full
+            validator pipeline (candidate whitelist, numeric grounding,
+            uncertainty), it renders on top with the source badge flipped to
+            <b>llm-validated</b>. The narrative never computes anything — it
+            narrates supplied numbers only. SYNTHETIC mock data.
+        </p>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:end; margin-bottom:16px; flex-wrap:wrap;">
+        <div><label style="font-size:11px; color:#777; display:block;">Team</label>
+            <select id="xpTeam" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></select></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Shift (optional)</label>
+            <select id="xpShift" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+                <option value="">any</option><option value="1">S1</option><option value="2">S2</option><option value="3">S3</option>
+            </select></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Limit</label>
+            <input id="xpLimit" type="number" min="1" max="25" value="8" style="width:60px; padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></div>
+        <button id="xpLoad" style="padding:7px 16px; border:none; border-radius:6px; background:#1976d2; color:#fff; cursor:pointer;">Load</button>
+        <div id="xpStatus" style="font-size:12px; color:#777; margin-left:8px;"></div>
+    </div>
+
+    <div id="xpNarrative" style="margin-bottom:16px;"></div>
+    <div id="xpCards" style="display:flex; flex-direction:column; gap:10px;"></div>
+</div>
+
+<script>
+(function () {
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+        c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    function fail(msg) {
+        document.getElementById('xpStatus').innerHTML =
+            '<span style="color:#c62828;">' + esc(msg) + '</span>';
+    }
+
+    function sourceBadge(source) {
+        const llm = source === 'llm-validated';
+        return '<span style="font-size:11px; font-weight:600; border-radius:10px; padding:2px 10px; ' +
+            (llm ? 'background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7;'
+                 : 'background:#f5f5f5; color:#555; border:1px solid #ddd;') + '">' +
+            esc(source || 'deterministic') + '</span>';
+    }
+
+    function componentChips(components) {
+        const names = Object.keys(components || {}).sort(
+            (a, b) => (components[b].points || 0) - (components[a].points || 0));
+        return names.map(n => {
+            const c = components[n] || {};
+            const pts = c.points || 0;
+            if (!pts) return '';
+            return '<span style="display:inline-block; margin:2px 4px 2px 0; padding:2px 8px; border-radius:10px; font-size:11px; ' +
+                (pts < 0 ? 'background:#fff5f5; color:#c62828; border:1px solid #ffcdd2;'
+                         : 'background:#f0f7ff; color:#1565c0; border:1px solid #bbdefb;') + '">' +
+                esc(n) + ' ' + (pts > 0 ? '+' : '') + Math.round(pts) + '</span>';
+        }).join('');
+    }
+
+    function render(d) {
+        const expl = d.explanation || {};
+        const source = expl.source || 'deterministic';
+        const notesById = {};
+        let narrativeHtml =
+            '<div style="border:1px solid #e0e0e0; border-radius:8px; background:#fff; padding:12px 14px; font-size:13px;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<b>Explanation</b>' + sourceBadge(source) + '</div>' +
+            '<div style="margin-top:6px;">' + esc(expl.summary || '') + '</div>';
+        if (expl.narrative) {
+            const n = expl.narrative;
+            (n.candidate_notes || []).forEach(cn => {
+                if (cn && cn.candidate_id) notesById[cn.candidate_id] = cn.note || cn.text || '';
+            });
+            narrativeHtml +=
+                '<div style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">' +
+                '<div>' + esc(n.summary || '') + '</div>' +
+                '<div style="font-size:11px; color:#777; margin-top:6px;">basis: ' + esc(n.data_basis || '') +
+                ' · confidence ' + (n.confidence != null ? (100 * n.confidence).toFixed(0) + '%' : '—') +
+                ' · template ' + esc(n.template || '') + ' · validated (whitelist + grounding + uncertainty)</div></div>';
+        } else {
+            narrativeHtml +=
+                '<div style="font-size:11px; color:#999; margin-top:6px;">No validated LLM narrative for this ' +
+                'snapshot — deterministic content renders in full (LB-8).</div>';
+        }
+        narrativeHtml += '</div>';
+        document.getElementById('xpNarrative').innerHTML = narrativeHtml;
+
+        const detById = {};
+        (expl.items || []).forEach(it => { detById[it.candidate_id] = it.explanation || ''; });
+
+        document.getElementById('xpCards').innerHTML = (d.candidates || []).map(c =>
+            '<div style="border:1px solid #e0e0e0; border-left:4px solid #1976d2; border-radius:8px; background:#fff; padding:10px 14px;">' +
+            '<div style="display:flex; justify-content:space-between; font-size:13px;">' +
+            '<span><b>#' + esc(c.rank) + '</b> <span style="font-family:monospace;">' + esc(c.task_id) + '</span></span>' +
+            '<b>' + Math.round(c.score || 0) + ' pts</b></div>' +
+            '<div style="margin:4px 0;">' + componentChips(c.components) + '</div>' +
+            ((c.reason_codes || []).length
+                ? '<div style="font-size:11px; color:#999;">' + (c.reason_codes || []).map(esc).join(' · ') + '</div>' : '') +
+            '<div style="font-size:12px; color:#555; margin-top:2px;">' + esc(detById[c.task_id] || c.explanation || '') + '</div>' +
+            (notesById[c.task_id]
+                ? '<div style="font-size:12px; color:#2e7d32; margin-top:4px;">LLM: ' + esc(notesById[c.task_id]) + '</div>' : '') +
+            '</div>').join('') ||
+            '<div style="color:#777; font-size:13px;">No READY candidates in scope.</div>';
+    }
+
+    function load() {
+        const team = document.getElementById('xpTeam').value;
+        const shift = document.getElementById('xpShift').value;
+        const limit = document.getElementById('xpLimit').value || '8';
+        document.getElementById('xpStatus').textContent = 'loading…';
+        let url = '/api/ff/explain/candidates?team=' + encodeURIComponent(team) +
+                  '&limit=' + encodeURIComponent(limit);
+        if (shift) url += '&shift=' + encodeURIComponent(shift);
+        fetch(url).then(r => r.json().then(d => ({ok: r.ok, d})))
+            .then(res => {
+                if (!res.ok) return fail(res.d.error || 'explain failed');
+                document.getElementById('xpStatus').textContent = '';
+                render(res.d);
+            }).catch(e => fail('FF backend unreachable: ' + e));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/shiftbook/options').then(r => r.json()).then(o => {
+            document.getElementById('xpTeam').innerHTML =
+                (o.teams || []).map(t => '<option>' + esc(t) + '</option>').join('');
+            load();
+        }).catch(e => fail('options failed: ' + e));
+        document.getElementById('xpLoad').addEventListener('click', load);
+    });
+})();
+</script>

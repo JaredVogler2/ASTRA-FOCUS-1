@@ -1,0 +1,114 @@
+<!-- Capacity View (NEW — decision-support tab; additive only) -->
+<div id="capacity-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Capacity Decisions</h2>
+        <p class="view-description">
+            Left: where late aircraft's completion chains sit <b>waiting for
+            people</b>, in dollar-weighted days per team and shift (from the
+            loaded schedule). Right: <b>measured</b> what-ifs — one
+            fully-cross-trained person added to a pool, whole plan re-run,
+            real delivery-day delta. A narrower real hire buys at most the
+            listed amount.
+        </p>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start;">
+        <div>
+            <h3 style="margin-bottom:8px;">Where the plan waits for people</h3>
+            <div style="max-height:480px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead style="position:sticky; top:0; background:#f5f5f5;">
+                        <tr>
+                            <th style="text-align:left; padding:8px;">Team</th>
+                            <th style="text-align:center; padding:8px;">Shift</th>
+                            <th style="text-align:right; padding:8px;">Wait-days</th>
+                            <th style="text-align:right; padding:8px;">$-days</th>
+                            <th style="text-align:right; padding:8px;">A/C hit</th>
+                            <th style="text-align:left; padding:8px;">Skills</th>
+                        </tr>
+                    </thead>
+                    <tbody id="capPressureBody"></tbody>
+                </table>
+            </div>
+            <p id="capPressureNote" style="font-size:11px; color:#999; margin-top:6px;"></p>
+            <h3 style="margin:14px 0 8px;">Bottleneck consistency</h3>
+            <p style="font-size:11px; color:#777; margin-bottom:6px;">
+                A hire or cross-train needs a <b>record</b>, not a snapshot —
+                act on pools that stay on top across days of real arrivals.
+            </p>
+            <div id="capConsistency" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+        <div>
+            <h3 style="margin-bottom:8px;">Measured: lateness recovered by +1 person</h3>
+            <div id="capWhatif"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const usd = v => v == null ? '—' : '$' + (v / 1e6).toLocaleString(undefined, {maximumFractionDigits: 1}) + 'M';
+
+    function render(d) {
+        if (!d.available) {
+            document.getElementById('capPressureBody').innerHTML =
+                '<tr><td colspan="6" style="padding:12px; color:#777;">This schedule has no capacity-pressure block (re-run the engine).</td></tr>';
+            return;
+        }
+        const pools = (d.pressure.pools || []);
+        document.getElementById('capPressureBody').innerHTML = pools.map((p, i) =>
+            '<tr style="border-top:1px solid #eee;' + (i === 0 ? ' background:#fff8f0;' : '') + '">' +
+            '<td style="padding:6px 8px; font-weight:600;">' + p.team + '</td>' +
+            '<td style="padding:6px 8px; text-align:center;">S' + p.shift + '</td>' +
+            '<td style="padding:6px 8px; text-align:right;">' + p.waitDays + '</td>' +
+            '<td style="padding:6px 8px; text-align:right; font-weight:600; color:#e65100;">' + usd(p.dollarDays) + '</td>' +
+            '<td style="padding:6px 8px; text-align:right;">' + p.aircraftTouched + '</td>' +
+            '<td style="padding:6px 8px; font-size:11px;">' + (p.topSkills || []).join(', ') + '</td></tr>').join('') ||
+            '<tr><td colspan="6" style="padding:12px; color:#2e7d32;">No capacity waits on late aircraft — the bottleneck is elsewhere (precedence/flow).</td></tr>';
+        document.getElementById('capPressureNote').textContent =
+            'Attribution over ' + (d.pressure.linesAnalyzed || 0) + ' late aircraft, weighted by each aircraft\'s marginal $/day.';
+
+        const con = d.pressure.consistency;
+        document.getElementById('capConsistency').innerHTML = !con
+            ? '<div style="color:#777; font-size:12px;">No history yet — consistency builds as replans accumulate.</div>'
+            : con.pools.map(p =>
+                '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px 10px; font-size:12px; background:#fff; display:flex; justify-content:space-between;">' +
+                '<span><b>' + p.team + '</b> S' + p.shift + '</span>' +
+                '<span>#1 in <b>' + p.top1 + '</b>/' + p.runs +
+                ' replans · top-3 in ' + p.top3 + '/' + p.runs +
+                ' · avg ' + usd(p.avgDollarDays) + '</span></div>').join('');
+
+        const w = d.whatif;
+        if (!w) {
+            document.getElementById('capWhatif').innerHTML =
+                '<div style="color:#777; font-size:13px; border:1px solid #e0e0e0; border-radius:8px; padding:12px;">' +
+                'No what-if sweep on file. Run: <code>python tools/capacity_whatif.py</code> (~3 min, re-runs the engine per candidate pool).</div>';
+            return;
+        }
+        document.getElementById('capWhatif').innerHTML =
+            '<div style="font-size:12px; color:#777; margin-bottom:8px;">Baseline: ' +
+            w.baseline.latenessDays + ' lateness-days, ' + usd(w.baseline.controllableUsd) + ' controllable.</div>' +
+            (w.experiments || []).map((r, i) =>
+                '<div style="border:1px solid #e0e0e0; border-left:4px solid ' +
+                (r.deltaDays >= 20 ? '#2e7d32' : r.deltaDays > 0 ? '#1976d2' : '#9e9e9e') +
+                '; border-radius:8px; padding:10px 12px; background:#fff; margin-bottom:6px;">' +
+                '<div style="display:flex; justify-content:space-between; font-size:14px;">' +
+                '<b>+1 ' + r.team + ' · shift ' + r.shift + '</b>' +
+                '<span style="font-weight:700; color:' + (r.deltaDays > 0 ? '#2e7d32' : '#9e9e9e') + ';">' +
+                (r.deltaDays > 0 ? 'recovers ' + r.deltaDays + ' late-days' : r.deltaDays === 0 ? 'no change' : 'adds ' + Math.abs(r.deltaDays) + ' late-days') + '</span></div>' +
+                '<div style="font-size:11px; color:#777;">controllable ' +
+                (r.deltaControllableUsd >= 0 ? '+' : '') + usd(r.deltaControllableUsd) +
+                ' · skills ' + (r.skills || []).join('/') +
+                ' · measured by full re-run (' + r.wall + 's)</div></div>').join('') +
+            '<p style="font-size:11px; color:#999;">' + (w.note || '') + '</p>';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/capacity').then(r => r.json()).then(render)
+            .catch(e => {
+                document.getElementById('capPressureBody').innerHTML =
+                    '<tr><td colspan="6" style="color:#c62828; padding:12px;">Failed to load: ' + e + '</td></tr>';
+            });
+    });
+})();
+</script>

@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0033A0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>FOCUS - Factory Optimized Capacity & Utilization System</title>
+
+    <!-- iOS-themed CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-ios.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shift-performance.css') }}">
+
+    <!-- External Libraries -->
+    <link href="/static/css/vendor/vis-timeline-7.4.8.min.css" rel="stylesheet" type="text/css" />
+    <script src="/static/js/vendor/vis-timeline-7.4.8.min.js"></script>
+    <script src="/static/js/vendor/chart-4.4.0.umd.js"></script>
+    <script src="/static/js/vendor/xlsx-0.18.5.full.min.js"></script>
+</head>
+<body>
+    <div class="ios-container">
+        <!-- Header -->
+        <header class="ios-header">
+            <div class="ios-header-brand">
+                <div class="ios-header-logo-pill">FOCUS</div>
+                <div class="ios-header-brand-name">Factory Optimized Capacity &amp; Utilization System</div>
+            </div>
+            <div class="ios-schedule-selector">
+                <label for="scenarioSelect">Schedule:</label>
+                <select id="scenarioSelect" class="ios-select">
+                    <option value="3stage">Loading schedules...</option>
+                </select>
+                <button class="help-btn" onclick="openHelpModal()" title="Open help guide for the current view">
+                    <span class="help-btn-icon">?</span>
+                    Help
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="ios-nav-container">
+            <div class="ios-nav-tabs">
+                <button class="ios-nav-tab active" data-view="team-lead">
+                    <span class="ios-nav-tab-icon">👥</span>
+                    Team Lead
+                </button>
+                <button class="ios-nav-tab" data-view="staffing">
+                    <span class="ios-nav-tab-icon">📊</span>
+                    Staffing
+                </button>
+                <button class="ios-nav-tab" data-view="management">
+                    <span class="ios-nav-tab-icon">📈</span>
+                    Management
+                </button>
+                <button class="ios-nav-tab" data-view="mechanic">
+                    <span class="ios-nav-tab-icon">🔧</span>
+                    Individual
+                </button>
+                <button class="ios-nav-tab" data-view="shift-performance">
+                    <span class="ios-nav-tab-icon">🎯</span>
+                    Performance
+                </button>
+                <button class="ios-nav-tab" data-view="project">
+                    <span class="ios-nav-tab-icon">📅</span>
+                    Project View
+                </button>
+                <button class="ios-nav-tab" data-view="worker-gantt">
+                    <span class="ios-nav-tab-icon">📋</span>
+                    Worker Gantt
+                </button>
+                <button class="ios-nav-tab" data-view="supply-chain">
+                    <span class="ios-nav-tab-icon">🔗</span>
+                    Supply Chain
+                </button>
+                <button class="ios-nav-tab" data-view="industrial-engineering">
+                    <span class="ios-nav-tab-icon">⚙️</span>
+                    IE
+                </button>
+                <button class="ios-nav-tab" data-view="development">
+                    <span class="ios-nav-tab-icon">🎓</span>
+                    Development
+                </button>
+                <button class="ios-nav-tab" data-view="schedule-budget">
+                    <span class="ios-nav-tab-icon">💰</span>
+                    Budget
+                </button>
+                <button class="ios-nav-tab" data-view="scenario">
+                    <span class="ios-nav-tab-icon">🔄</span>
+                    Scenarios
+                </button>
+                <button class="ios-nav-tab" data-view="commitments">
+                    <span class="ios-nav-tab-icon">📅</span>
+                    Commitments (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="economics">
+                    <span class="ios-nav-tab-icon">💵</span>
+                    Economics (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="shift-book">
+                    <span class="ios-nav-tab-icon">📋</span>
+                    Shift Book (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="my-day">
+                    <span class="ios-nav-tab-icon">🧰</span>
+                    My Day (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="capacity">
+                    <span class="ios-nav-tab-icon">🧮</span>
+                    Capacity (NEW)
+                </button>
+                <!-- VENDOR ADD (INCREMENT 6 Part C, VENDOR_CHANGES.md): FF_app insight tabs -->
+                <button class="ios-nav-tab" data-view="arena">
+                    <span class="ios-nav-tab-icon">🎯</span>
+                    Arena (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="progression">
+                    <span class="ios-nav-tab-icon">🏅</span>
+                    Progression (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="excusals">
+                    <span class="ios-nav-tab-icon">🛡️</span>
+                    Excusals (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="explain">
+                    <span class="ios-nav-tab-icon">💬</span>
+                    Explain (NEW)
+                </button>
+                <button class="ios-nav-tab" data-view="scorecard">
+                    <span class="ios-nav-tab-icon">📊</span>
+                    Scorecard (NEW)
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="ios-main-content">
+            <!-- Team Lead View -->
+            <div id="team-lead-view" class="ios-view-content view-content active">
+                <!-- Filters -->
+                <div class="ios-filters">
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Superintendent</label>
+                        <select id="superintendentSelect" class="ios-filter-select">
+                            <option value="all">All Superintendents</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Team (Ctrl+Click)</label>
+                        <select id="teamSelect" class="ios-multi-select" multiple size="3">
+                            <option value="all" selected>All Teams</option>
+                            <option value="all-mechanics">All Mechanic Teams</option>
+                            <option value="all-quality">All Quality Teams</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Skill</label>
+                        <select id="skillSelect" class="ios-filter-select">
+                            <option value="all">All Skills</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Shift</label>
+                        <select id="shiftSelect" class="ios-filter-select">
+                            <option value="all">All Shifts</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Work Group</label>
+                        <select id="workGroupSelect" class="ios-filter-select">
+                            <option value="all">All Work Groups</option>
+                            <option value="mechanic">Mechanic</option>
+                            <option value="quality">Quality</option>
+                            <option value="customer">Customer</option>
+                            <option value="vendor">Vendor</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Aircraft</label>
+                        <select id="productSelect" class="ios-filter-select">
+                            <option value="all">All Aircraft</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Customer</label>
+                        <select id="customerSelect" class="ios-filter-select">
+                            <option value="all">All Customers</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group" style="flex: 1;">
+                        <label class="ios-filter-label">Search Task</label>
+                        <div class="ios-search-wrapper">
+                            <span class="ios-search-icon">🔍</span>
+                            <input type="text" id="jobSearchInput" class="ios-search-input" placeholder="Enter task ID or SOI..." autocomplete="off">
+                            <div id="searchSuggestions" class="ios-autocomplete"></div>
+                        </div>
+                    </div>
+                    <div class="ios-filter-group" style="align-self: flex-end;">
+                        <button id="clearSearchBtn" class="ios-btn ios-btn-danger ios-btn-sm" onclick="clearJobSearch()" style="display: none;">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="ios-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">👥</div>
+                        <div class="ios-stat-label">Team Capacity</div>
+                        <div class="ios-stat-value" id="teamCapacity">0</div>
+                        <div class="ios-stat-subtext">resources available</div>
+                    </div>
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">📋</div>
+                        <div class="ios-stat-label">Tasks (Shift)</div>
+                        <div class="ios-stat-value" id="tasksToday">0</div>
+                        <div class="ios-stat-subtext" id="tasksTodayDetail">to be completed</div>
+                    </div>
+                    <div class="ios-stat-card success">
+                        <div class="ios-stat-icon">📊</div>
+                        <div class="ios-stat-label">Utilization</div>
+                        <div class="ios-stat-value" id="teamUtilization">0%</div>
+                        <div class="ios-stat-subtext">planned work / capacity</div>
+                    </div>
+                    <div class="ios-stat-card warning">
+                        <div class="ios-stat-icon">⚡</div>
+                        <div class="ios-stat-label">Critical Tasks</div>
+                        <div class="ios-stat-value" id="criticalTasks">0</div>
+                        <div class="ios-stat-subtext">high priority</div>
+                    </div>
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">✈️</div>
+                        <div class="ios-stat-label">Aircraft</div>
+                        <div class="ios-stat-value" id="aircraftCount">0</div>
+                        <div class="ios-stat-subtext" id="aircraftDetail">lines active</div>
+                    </div>
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">🔧</div>
+                        <div class="ios-stat-label">By Type</div>
+                        <div class="ios-stat-value" id="taskTypeBreakdown" style="font-size: 14px; line-height: 1.4;">-</div>
+                        <div class="ios-stat-subtext">task breakdown</div>
+                    </div>
+                </div>
+
+                <!-- Task Table -->
+                <div class="ios-table-container">
+                    <div class="ios-table-header">
+                        <h3 class="ios-table-title">Task Priority List</h3>
+                        <div class="ios-table-actions">
+                            <button class="ios-btn ios-btn-primary" onclick="autoAssign()">Smart Auto-Assign</button>
+                            <button class="ios-btn ios-btn-secondary" onclick="saveAssignmentsToStorage()">Save</button>
+                            <button class="ios-btn ios-btn-secondary" onclick="loadAssignmentsFromStorage()">Load</button>
+                            <button class="ios-btn ios-btn-secondary" onclick="exportTasks()">Export</button>
+                        </div>
+                    </div>
+                    <table class="ios-table" id="taskTable">
+                        <thead>
+                            <tr>
+                                <th width="55">Priority</th>
+                                <th width="55">Line #</th>
+                                <th width="55">Customer</th>
+                                <th width="120">Task</th>
+                                <th width="90">Task Type</th>
+                                <th width="100">Team</th>
+                                <th width="80">Super</th>
+                                <th width="130">Start Date & Time</th>
+                                <th width="70">Duration</th>
+                                <th width="50" style="text-align: center;">#Res</th>
+                                <th width="200">Assignment</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taskTableBody">
+                            <tr>
+                                <td colspan="11" style="text-align: center; padding: 40px;">
+                                    <div class="ios-loading">
+                                        <div class="ios-spinner"></div>
+                                        <p>Loading tasks...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Pagination -->
+                    <div id="paginationControls" class="ios-pagination" style="display: none;">
+                        <span id="paginationInfo" class="ios-pagination-info">Showing 0 of 0 tasks</span>
+                        <button id="loadMoreBtn" class="ios-btn ios-btn-primary ios-btn-sm" onclick="loadMoreTasks()">
+                            Load Next 500 Tasks
+                        </button>
+                        <button id="showAllBtn" class="ios-btn ios-btn-secondary ios-btn-sm" onclick="loadAllTasks()">
+                            Show All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Assignment Summary Panel -->
+                <div id="assignmentSummary" class="ios-assignment-summary">
+                    <h4>📊 Assignment Status</h4>
+                    <div class="ios-summary-row">
+                        <span class="ios-summary-label">Total Tasks:</span>
+                        <span class="ios-summary-value" id="summaryTotal">0</span>
+                    </div>
+                    <div class="ios-summary-row">
+                        <span class="ios-summary-label">Fully Assigned:</span>
+                        <span class="ios-summary-value" id="summaryComplete">0</span>
+                    </div>
+                    <div class="ios-summary-row">
+                        <span class="ios-summary-label">Partially Assigned:</span>
+                        <span class="ios-summary-value" id="summaryPartial">0</span>
+                    </div>
+                    <div class="ios-summary-row">
+                        <span class="ios-summary-label">Unassigned:</span>
+                        <span class="ios-summary-value" id="summaryUnassigned">0</span>
+                    </div>
+                    <div class="ios-progress" style="margin-top: 12px;">
+                        <div class="ios-progress-bar" id="summaryProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staffing View -->
+            <div id="staffing-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Staffing Dashboard</h2>
+                        <p class="ios-section-subtitle">Peak Demand & Utilization Analysis</p>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="ios-filters">
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Superintendent</label>
+                        <select id="superFilter" class="ios-multi-select" multiple style="height: 100px;">
+                            <option value="ALL" selected>All Superintendents</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Shift</label>
+                        <select id="shiftFilter" class="ios-multi-select" multiple style="height: 100px;">
+                            <option value="ALL" selected>All Shifts</option>
+                            <option value="1">Shift 1</option>
+                            <option value="2">Shift 2</option>
+                            <option value="3">Shift 3</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Team</label>
+                        <select id="teamFilter" class="ios-multi-select" multiple style="height: 100px;">
+                            <option value="ALL" selected>All Teams</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Role</label>
+                        <select id="roleFilter" class="ios-multi-select" multiple style="height: 100px;">
+                            <option value="ALL" selected>All Roles</option>
+                            <option value="mechanic">Mechanic</option>
+                            <option value="quality">Quality</option>
+                            <option value="customer">Customer</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group" style="align-self: flex-end;">
+                        <button id="applyFiltersBtn" class="ios-btn ios-btn-primary">Apply Filters</button>
+                        <button id="clearFiltersBtn" class="ios-btn ios-btn-secondary">Clear All</button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="ios-stats-grid">
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">📈</div>
+                        <div class="ios-stat-label">Avg Peak Demand</div>
+                        <div class="ios-stat-value" id="avgPeakDemand">-</div>
+                        <div class="ios-stat-subtext">mechanics/day</div>
+                    </div>
+                    <div class="ios-stat-card danger">
+                        <div class="ios-stat-icon">🔺</div>
+                        <div class="ios-stat-label">Max Peak Demand</div>
+                        <div class="ios-stat-value" id="maxPeakDemand">-</div>
+                        <div class="ios-stat-subtext">mechanics</div>
+                    </div>
+                    <div class="ios-stat-card success">
+                        <div class="ios-stat-icon">⚡</div>
+                        <div class="ios-stat-label">Avg Utilization</div>
+                        <div class="ios-stat-value" id="staffingAvgUtilization">-</div>
+                        <div class="ios-stat-subtext">%</div>
+                    </div>
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">⏱️</div>
+                        <div class="ios-stat-label">Total Work Hours</div>
+                        <div class="ios-stat-value" id="totalWorkHours">-</div>
+                        <div class="ios-stat-subtext">hours</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="ios-chart-container">
+                    <h3 class="ios-chart-title">Peak Demand Headcount per Day</h3>
+                    <canvas id="peakDemandChart" style="max-height: 400px;"></canvas>
+                </div>
+
+                <div class="ios-chart-container">
+                    <h3 class="ios-chart-title">Utilization per Day</h3>
+                    <canvas id="utilizationChart" style="max-height: 400px;"></canvas>
+                </div>
+
+                <!-- Data Table -->
+                <div class="ios-table-container">
+                    <div class="ios-table-header">
+                        <h3 class="ios-table-title">Daily Breakdown</h3>
+                    </div>
+                    <table class="ios-table" id="staffingDataTable">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th style="text-align: right;">Peak Demand</th>
+                                <th style="text-align: right;">Work Minutes</th>
+                                <th style="text-align: right;">Capacity Minutes</th>
+                                <th style="text-align: right;">Utilization %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffingTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                                    Click "Apply Filters" to load data
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Management View -->
+            <div id="management-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Management Dashboard</h2>
+                        <p class="ios-section-subtitle">Production Overview & Delivery Status</p>
+                    </div>
+                </div>
+
+                <!-- Management Sub-Tab Bar -->
+                <div class="mgmt-tab-bar">
+                    <button class="mgmt-tab-btn active" data-mgmt-tab="dashboard" onclick="switchMgmtTab('dashboard')">Dashboard</button>
+                    <button class="mgmt-tab-btn" data-mgmt-tab="burndown" onclick="switchMgmtTab('burndown')">Burndown Chart</button>
+                </div>
+
+                <!-- Dashboard Tab Panel -->
+                <div id="mgmt-panel-dashboard" class="mgmt-tab-panel active">
+
+                <!-- KPI Cards -->
+                <div class="ios-stats-grid">
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">👷</div>
+                        <div class="ios-stat-label">Total Workforce</div>
+                        <div class="ios-stat-value" id="totalWorkforce">0</div>
+                        <div class="ios-stat-subtext">mechanics & inspectors</div>
+                    </div>
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">📅</div>
+                        <div class="ios-stat-label">Makespan</div>
+                        <div class="ios-stat-value" id="makespan">0</div>
+                        <div class="ios-stat-subtext">working days</div>
+                    </div>
+                    <div class="ios-stat-card success">
+                        <div class="ios-stat-icon">✅</div>
+                        <div class="ios-stat-label">On-Time Delivery</div>
+                        <div class="ios-stat-value" id="onTimeRate">0%</div>
+                        <div class="ios-stat-subtext">of products</div>
+                    </div>
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-icon">📊</div>
+                        <div class="ios-stat-label">Avg Utilization</div>
+                        <div class="ios-stat-value" id="avgUtilization">0%</div>
+                        <div class="ios-stat-subtext">across all teams</div>
+                    </div>
+                </div>
+
+                <!-- Risk Traffic Light Panel -->
+                <div class="ios-card" style="margin-bottom: 24px;">
+                    <div class="ios-card-header">
+                        <div>
+                            <h3 class="ios-card-title">Aircraft Risk Status</h3>
+                            <span id="riskLastUpdated" style="font-size: 12px; color: #6B7280;"></span>
+                        </div>
+                    </div>
+                    <div id="riskTrafficLights" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 16px;">
+                        <div style="background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #34D399;">
+                            <div id="riskGreenCount" style="font-size: 32px; font-weight: 700; color: #065F46;">0</div>
+                            <div style="font-size: 14px; color: #047857; font-weight: 600;">On-Time</div>
+                            <div style="font-size: 11px; color: #059669; margin-top: 4px;">0-1 days late</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #FBBF24;">
+                            <div id="riskYellowCount" style="font-size: 32px; font-weight: 700; color: #92400E;">0</div>
+                            <div style="font-size: 14px; color: #B45309; font-weight: 600;">At Risk</div>
+                            <div style="font-size: 11px; color: #D97706; margin-top: 4px;">1-5 days late</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #F87171;">
+                            <div id="riskRedCount" style="font-size: 32px; font-weight: 700; color: #991B1B;">0</div>
+                            <div style="font-size: 14px; color: #DC2626; font-weight: 600;">Critical</div>
+                            <div style="font-size: 11px; color: #EF4444; margin-top: 4px;">>5 days late</div>
+                        </div>
+                    </div>
+                    <div id="criticalAircraftList" style="padding: 0 16px 16px; display: none;">
+                        <div style="font-size: 13px; font-weight: 600; color: #991B1B; margin-bottom: 8px;">Critical Aircraft Requiring Attention:</div>
+                        <div id="criticalAircraftItems" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
+                </div>
+
+                <!-- Forecast Accuracy Widget -->
+                <div class="ios-card" style="margin-bottom: 24px;">
+                    <div class="ios-card-header">
+                        <h3 class="ios-card-title">Schedule Forecast Accuracy</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 16px;">
+                        <div style="background: #F3F4F6; border-radius: 10px; padding: 14px; text-align: center;">
+                            <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Tasks Scheduled</div>
+                            <div id="forecastScheduled" style="font-size: 24px; font-weight: 700; color: #0033A0;">-</div>
+                        </div>
+                        <div style="background: #F3F4F6; border-radius: 10px; padding: 14px; text-align: center;">
+                            <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Success Rate</div>
+                            <div id="forecastSuccessRate" style="font-size: 24px; font-weight: 700; color: #059669;">-</div>
+                        </div>
+                        <div style="background: #F3F4F6; border-radius: 10px; padding: 14px; text-align: center;">
+                            <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Unscheduled</div>
+                            <div id="forecastUnscheduled" style="font-size: 24px; font-weight: 700; color: #DC2626;">-</div>
+                        </div>
+                        <div style="background: #F3F4F6; border-radius: 10px; padding: 14px; text-align: center;">
+                            <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Avg Lateness</div>
+                            <div id="forecastLateness" style="font-size: 24px; font-weight: 700; color: #0033A0;">-</div>
+                        </div>
+                    </div>
+                    <div style="padding: 0 16px 16px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6B7280; margin-bottom: 6px;">
+                            <span>Schedule Coverage</span>
+                            <span id="forecastCoveragePercent">-</span>
+                        </div>
+                        <div style="background: #E5E7EB; border-radius: 8px; height: 12px; overflow: hidden;">
+                            <div id="forecastCoverageBar" style="background: linear-gradient(90deg, #059669, #34D399); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Delivery Status -->
+                <div class="ios-card">
+                    <div class="ios-card-header">
+                        <h3 class="ios-card-title">Product Delivery Status</h3>
+                    </div>
+                    <div class="ios-product-grid" id="productGrid">
+                        <div class="ios-loading">
+                            <div class="ios-spinner"></div>
+                            <p>Loading products...</p>
+                        </div>
+                    </div>
+                </div>
+
+                </div><!-- End Dashboard Tab Panel -->
+
+                <!-- Burndown Chart Tab Panel -->
+                <div id="mgmt-panel-burndown" class="mgmt-tab-panel">
+
+                    <!-- Burndown Filters -->
+                    <div class="ios-card" style="margin-bottom: 16px;">
+                        <div class="ios-card-header" style="flex-wrap: wrap; gap: 12px;">
+                            <h3 class="ios-card-title">Schedule Burndown</h3>
+                            <div class="burndown-color-toggle">
+                                <button class="burndown-color-btn active" data-color-mode="aircraft" onclick="switchBurndownColorMode('aircraft')">By Aircraft</button>
+                                <button class="burndown-color-btn" data-color-mode="team" onclick="switchBurndownColorMode('team')">By Team</button>
+                                <button class="burndown-color-btn" data-color-mode="type" onclick="switchBurndownColorMode('type')">By Type</button>
+                            </div>
+                        </div>
+                        <div class="burndown-filters">
+                            <div class="burndown-filter-group">
+                                <label class="burndown-filter-label">Aircraft</label>
+                                <select id="burndownAircraftFilter" multiple class="burndown-select">
+                                    <option value="all" selected>All Aircraft</option>
+                                </select>
+                            </div>
+                            <div class="burndown-filter-group">
+                                <label class="burndown-filter-label">Team</label>
+                                <select id="burndownTeamFilter" multiple class="burndown-select">
+                                    <option value="all" selected>All Teams</option>
+                                </select>
+                            </div>
+                            <div class="burndown-filter-group">
+                                <label class="burndown-filter-label">Task Type</label>
+                                <select id="burndownTypeFilter" multiple class="burndown-select">
+                                    <option value="all" selected>All Types</option>
+                                </select>
+                            </div>
+                            <button class="ios-btn ios-btn-primary ios-btn-sm" onclick="applyBurndownFilters()" style="align-self: flex-end;">Apply Filters</button>
+                            <button class="ios-btn ios-btn-secondary ios-btn-sm" onclick="resetBurndownFilters()" style="align-self: flex-end;">Reset</button>
+                        </div>
+                    </div>
+
+                    <!-- Burndown Summary Stats -->
+                    <div class="ios-stats-grid" id="burndownStats" style="margin-bottom: 16px;">
+                        <div class="ios-stat-card">
+                            <div class="ios-stat-icon">📋</div>
+                            <div class="ios-stat-label">Total Jobs</div>
+                            <div class="ios-stat-value" id="burndownTotalJobs">-</div>
+                            <div class="ios-stat-subtext">true jobs (excl. segments)</div>
+                        </div>
+                        <div class="ios-stat-card">
+                            <div class="ios-stat-icon">📅</div>
+                            <div class="ios-stat-label">Schedule Span</div>
+                            <div class="ios-stat-value" id="burndownSpan">-</div>
+                            <div class="ios-stat-subtext">working days</div>
+                        </div>
+                        <div class="ios-stat-card">
+                            <div class="ios-stat-icon">📈</div>
+                            <div class="ios-stat-label">Peak Day</div>
+                            <div class="ios-stat-value" id="burndownPeakDay">-</div>
+                            <div class="ios-stat-subtext" id="burndownPeakDate">jobs in one day</div>
+                        </div>
+                        <div class="ios-stat-card">
+                            <div class="ios-stat-icon">🔢</div>
+                            <div class="ios-stat-label">Avg/Day</div>
+                            <div class="ios-stat-value" id="burndownAvgDay">-</div>
+                            <div class="ios-stat-subtext">jobs per working day</div>
+                        </div>
+                    </div>
+
+                    <!-- Burndown Chart -->
+                    <div class="ios-card">
+                        <div class="ios-card-header">
+                            <h3 class="ios-card-title">Jobs Burndown</h3>
+                            <span id="burndownChartSubtitle" style="font-size: 12px; color: #6B7280;">Colored by Aircraft</span>
+                        </div>
+                        <div style="padding: 16px; position: relative;">
+                            <div id="burndownLoading" class="ios-loading" style="display: none;">
+                                <div class="ios-spinner"></div>
+                                <p>Loading burndown data...</p>
+                            </div>
+                            <div id="burndownNoData" style="display: none; text-align: center; padding: 40px; color: #6B7280;">
+                                <p style="font-size: 16px; font-weight: 600;">No Schedule Data</p>
+                                <p style="font-size: 13px;">Load a 3-stage schedule to view the burndown chart.</p>
+                            </div>
+                            <div style="position: relative; height: 400px; width: 100%;">
+                                <canvas id="burndownChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Burndown Legend / Summary Table -->
+                    <div class="ios-card" style="margin-top: 16px;">
+                        <div class="ios-card-header">
+                            <h3 class="ios-card-title">Breakdown Summary</h3>
+                        </div>
+                        <div id="burndownSummaryTable" style="padding: 16px; overflow-x: auto;">
+                            <p style="color: #6B7280; font-size: 13px;">Load data to see breakdown.</p>
+                        </div>
+                    </div>
+
+                </div><!-- End Burndown Tab Panel -->
+
+            </div>
+
+            <!-- Mechanic View -->
+            <div id="mechanic-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Individual Schedule</h2>
+                        <p class="ios-section-subtitle">Mechanic/Inspector Task Timeline</p>
+                    </div>
+                </div>
+
+                <div class="ios-filters">
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Resource</label>
+                        <select id="mechanicSelect" class="ios-filter-select" style="min-width: 350px;">
+                            <option value="none">Select a resource...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filter controls row -->
+                <div class="mechanic-filters" style="margin: 0 0 16px 0; padding: 0 4px;">
+                    <div class="mechanic-filter-group">
+                        <label>Team:</label>
+                        <select id="mechFilterTeam" class="ios-filter-select">
+                            <option value="all">All Teams</option>
+                        </select>
+                    </div>
+                    <div class="mechanic-filter-group">
+                        <label>Skill:</label>
+                        <select id="mechFilterSkill" class="ios-filter-select">
+                            <option value="all">All Skills</option>
+                        </select>
+                    </div>
+                    <div class="mechanic-filter-group">
+                        <label>Shift:</label>
+                        <select id="mechFilterShift" class="ios-filter-select">
+                            <option value="all">All Shifts</option>
+                        </select>
+                    </div>
+                    <div class="mechanic-filter-group mechanic-search-group">
+                        <label>Search:</label>
+                        <input type="text" id="mechFilterSearch" class="ios-filter-select" placeholder="Search by name or ID..." style="min-width: 180px;" />
+                    </div>
+                </div>
+
+                <div class="ios-card">
+                    <div class="ios-card-header">
+                        <h3 class="ios-card-title" id="mechanicName">Task Schedule</h3>
+                    </div>
+                    <div class="ios-timeline" id="mechanicTimeline">
+                        <div class="ios-empty-state">
+                            <div class="ios-empty-icon">&#128100;</div>
+                            <h3 class="ios-empty-title">Select a Resource</h3>
+                            <p class="ios-empty-description">Choose a resource from the dropdown above to view their task schedule. Use the filters to narrow down the list.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shift Performance View -->
+            <div id="shift-performance-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Shift Performance</h2>
+                        <p class="ios-section-subtitle">Throughput + Alignment + Impact = Performance Index</p>
+                    </div>
+                    <button id="refreshPerformanceBtn" class="ios-btn ios-btn-primary">Refresh Performance</button>
+                </div>
+
+                <!-- Schedule Info -->
+                <div class="ios-card" style="margin-bottom: 0;">
+                    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+                        <div>
+                            <div class="ios-stat-label">Performance For</div>
+                            <div id="performanceShiftInfo" style="font-size: 18px; font-weight: 700; color: var(--boeing-blue);">Loading...</div>
+                        </div>
+                        <div>
+                            <div class="ios-stat-label">Current Schedule</div>
+                            <div id="currentScheduleName" style="font-size: 16px; font-weight: 600;">Loading...</div>
+                        </div>
+                        <div>
+                            <div class="ios-stat-label">Previous Schedule</div>
+                            <div id="previousScheduleName" style="font-size: 16px; font-weight: 600;">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resource Type Selector -->
+                <div id="spResourceTypeSelector"></div>
+
+                <!-- Audience Sub-Tabs -->
+                <div class="sp-tab-bar">
+                    <button class="sp-tab-btn active" data-sp-tab="floor-manager">Floor Manager</button>
+                    <button class="sp-tab-btn" data-sp-tab="production-manager">Production Manager</button>
+                    <button class="sp-tab-btn" data-sp-tab="executive">Executive Summary</button>
+                    <button class="sp-tab-btn" data-sp-tab="schedule-impact">Schedule Impact</button>
+                    <button class="sp-tab-btn" data-sp-tab="shift-progress">Shift Progress</button>
+                </div>
+
+                <!-- Loading State -->
+                <div id="performanceLoading" class="ios-loading" style="display: none;">
+                    <div class="ios-spinner"></div>
+                    <p>Loading performance data...</p>
+                </div>
+
+                <!-- No Data State -->
+                <div id="performanceNoData" class="ios-empty-state" style="display: none;">
+                    <div class="ios-empty-icon">&#128202;</div>
+                    <h3 class="ios-empty-title">No Performance Data</h3>
+                    <p class="ios-empty-description">No performance data available for the selected shift.</p>
+                </div>
+
+                <!-- Performance Dashboard (contains all 4 tab panels) -->
+                <div id="performanceDashboard" style="display: none;">
+
+                    <!-- Schedule Overview: before vs after task count comparison -->
+                    <div id="spScheduleOverview"></div>
+
+                    <!-- Tab 1: Floor Manager -->
+                    <div id="sp-floor-manager" class="sp-tab-panel active">
+                        <div id="sp-floor-manager-content"></div>
+                    </div>
+
+                    <!-- Tab 2: Production Manager -->
+                    <div id="sp-production-manager" class="sp-tab-panel">
+                        <div id="sp-production-manager-content"></div>
+                    </div>
+
+                    <!-- Tab 3: Executive Summary -->
+                    <div id="sp-executive" class="sp-tab-panel">
+                        <div id="sp-executive-content"></div>
+                    </div>
+
+                    <!-- Tab 4: Schedule Impact -->
+                    <div id="sp-schedule-impact" class="sp-tab-panel">
+                        <div id="sp-schedule-impact-content"></div>
+                    </div>
+
+                    <!-- Tab 5: Shift Progress (Intra-Shift Timeline) -->
+                    <div id="sp-shift-progress" class="sp-tab-panel">
+                        <div id="sp-shift-progress-content"></div>
+                    </div>
+                </div>
+
+                <!-- Task Details Modal -->
+                <div id="taskDetailsModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 1000px; width: 90%;">
+                        <div class="modal-header" style="background: var(--boeing-blue);">
+                            <h3 style="margin:0; color:white;">Team Details - <span id="modalTeamName"></span></h3>
+                            <span class="modal-close" onclick="closeTaskDetailsModal()" style="color:white;font-size:28px;cursor:pointer;">&times;</span>
+                        </div>
+                        <div class="modal-body" style="padding:20px; max-height:75vh; overflow-y:auto;">
+                            <div id="taskDetailsContent"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delay Reason Entry Modal -->
+                <div id="delayReasonModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header" style="background: #dc2626;">
+                            <h3 style="margin:0; color:white;">Enter Delay Reason</h3>
+                            <span class="modal-close" onclick="closeDelayReasonModal()" style="color:white;font-size:28px;cursor:pointer;">&times;</span>
+                        </div>
+                        <div class="modal-body" style="padding:20px;">
+                            <form id="delayReasonForm">
+                                <input type="hidden" id="delayTaskSOI" />
+                                <input type="hidden" id="delayLineNumber" />
+                                <input type="hidden" id="delayShiftDate" />
+                                <input type="hidden" id="delayShiftNumber" />
+                                <input type="hidden" id="delayTeam" />
+                                <div class="form-group"><label>Task:</label><span id="delayTaskDisplay" class="form-value"></span></div>
+                                <div class="form-group"><label>Aircraft:</label><span id="delayLineDisplay" class="form-value" style="font-weight:600;color:#2563eb;"></span></div>
+                                <div class="form-group">
+                                    <label for="delayReasonSelect">Delay Reason: *</label>
+                                    <select id="delayReasonSelect" required onchange="handleDelayReasonChange()"><option value="">Select reason...</option></select>
+                                </div>
+                                <div id="heldPredecessorContainer" style="display: none;">
+                                    <div class="form-group">
+                                        <label style="font-weight:600;margin-bottom:10px;display:block;">Predecessor Task(s):</label>
+                                        <div id="predecessorEntriesList"></div>
+                                        <button type="button" class="sp-btn-secondary" onclick="addDelayPredecessorEntry()" style="margin-top:8px;">+ Add Predecessor</button>
+                                    </div>
+                                </div>
+                                <div class="form-group"><label for="delayNotes">Notes:</label><textarea id="delayNotes" rows="3" placeholder="Optional details..."></textarea></div>
+                                <div class="form-group"><label for="delayEnteredBy">Entered By: *</label><input type="text" id="delayEnteredBy" placeholder="Your name" required /></div>
+                                <div class="form-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                                    <button type="submit" class="sp-btn-primary">Save</button>
+                                    <button type="button" class="sp-btn-secondary" onclick="closeDelayReasonModal()">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project View -->
+            <div id="project-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Project Gantt View</h2>
+                        <p class="ios-section-subtitle">Task timeline across all products</p>
+                    </div>
+                </div>
+
+                <!-- Gantt Controls -->
+                <div class="ios-filters">
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Product</label>
+                        <select id="ganttProductFilter" class="ios-filter-select">
+                            <option value="all">All Products</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Team</label>
+                        <select id="ganttTeamFilter" class="ios-filter-select">
+                            <option value="all">All Teams</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Critical Path</label>
+                        <select id="ganttCriticalFilter" class="ios-filter-select">
+                            <option value="all">All Tasks</option>
+                            <option value="critical">Critical Path Only</option>
+                            <option value="non-critical">Non-Critical Only</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">View Scale</label>
+                        <select id="ganttViewMode" class="ios-filter-select">
+                            <option value="1day" selected>1 Day</option>
+                            <option value="1week">1 Week</option>
+                            <option value="2weeks">2 Weeks</option>
+                            <option value="1month">1 Month</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Sort By</label>
+                        <select id="ganttSortBy" class="ios-filter-select">
+                            <option value="startDate">Start Date</option>
+                            <option value="product">Product</option>
+                            <option value="team">Team</option>
+                            <option value="priority">Priority</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group" style="align-self: flex-end;">
+                        <button class="ios-btn ios-btn-primary" onclick="refreshCustomGantt()">Refresh</button>
+                        <button class="ios-btn ios-btn-secondary" onclick="exportCustomGantt()">Export</button>
+                        <button class="ios-btn ios-btn-secondary" onclick="fitGanttToTasks()">Fit All</button>
+                    </div>
+                </div>
+
+                <!-- Gantt Stats -->
+                <div class="ios-stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-label">Total Tasks</div>
+                        <div class="ios-stat-value" id="ganttTotalTasks">0</div>
+                    </div>
+                    <div class="ios-stat-card">
+                        <div class="ios-stat-label">Total Duration</div>
+                        <div class="ios-stat-value" id="ganttTotalDuration">0 days</div>
+                    </div>
+                    <div class="ios-stat-card danger">
+                        <div class="ios-stat-label">Critical Tasks</div>
+                        <div class="ios-stat-value" id="ganttCriticalTasks">0</div>
+                    </div>
+                    <div class="ios-stat-card success">
+                        <div class="ios-stat-label">On Schedule</div>
+                        <div class="ios-stat-value" id="ganttCompletionRate">0%</div>
+                    </div>
+                </div>
+
+                <!-- Gantt Container -->
+                <div class="ios-gantt-container">
+                    <table class="ios-table" id="ganttTableNew" style="min-width: 1200px;">
+                        <thead class="gantt-header-new" id="ganttHeaderNew">
+                            <!-- Headers generated by JS -->
+                        </thead>
+                        <tbody id="ganttBodyNew">
+                            <tr>
+                                <td colspan="20" style="text-align: center; padding: 40px;">
+                                    <div class="ios-loading">
+                                        <div class="ios-spinner"></div>
+                                        <p>Loading Gantt chart...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Legend -->
+                <div class="ios-gantt-legend">
+                    <span style="font-weight: 600; color: var(--text-secondary);">Legend:</span>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="background: linear-gradient(135deg, var(--ios-green), #2ECC71);"></div>
+                        <span>Production</span>
+                    </div>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="background: linear-gradient(135deg, var(--boeing-blue), var(--boeing-blue-light));"></div>
+                        <span>Quality</span>
+                    </div>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="background: linear-gradient(135deg, var(--ios-red), #E74C3C);"></div>
+                        <span>Rework</span>
+                    </div>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="background: linear-gradient(135deg, var(--ios-orange), #F39C12);"></div>
+                        <span>Late Parts</span>
+                    </div>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="background: linear-gradient(135deg, var(--ios-purple), #9B59B6);"></div>
+                        <span>Customer</span>
+                    </div>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="border: 2px solid var(--ios-yellow); background: white;"></div>
+                        <span>Critical Task</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Worker Gantt View -->
+            <div id="worker-gantt-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Worker Gantt</h2>
+                        <p class="ios-section-subtitle">Visual schedule organized by worker and shift</p>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="ios-filters">
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Team</label>
+                        <select id="wg-team-filter" class="ios-filter-select">
+                            <option value="all">All Teams</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Shift</label>
+                        <select id="wg-shift-filter" class="ios-filter-select">
+                            <option value="all">All Shifts</option>
+                            <option value="1st">1st Shift</option>
+                            <option value="2nd">2nd Shift</option>
+                            <option value="3rd">3rd Shift</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Skillset</label>
+                        <select id="wg-skillset-filter" class="ios-filter-select">
+                            <option value="all">All Skillsets</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Worker</label>
+                        <select id="wg-worker-filter" class="ios-filter-select">
+                            <option value="all">All Workers</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">View Date</label>
+                        <input type="date" id="wg-view-date" class="ios-filter-input">
+                    </div>
+                    <div class="ios-filter-group">
+                        <label class="ios-filter-label">Show</label>
+                        <select id="wg-timescale-filter" class="ios-filter-select">
+                            <option value="1">1 Day</option>
+                            <option value="2" selected>2 Days</option>
+                            <option value="7">1 Week</option>
+                            <option value="14">2 Weeks</option>
+                        </select>
+                    </div>
+                    <div class="ios-filter-group" style="align-self: flex-end;">
+                        <button id="wg-back-btn" class="ios-btn ios-btn-secondary">◄ Back</button>
+                        <button id="wg-forward-btn" class="ios-btn ios-btn-secondary">Forward ►</button>
+                        <button id="wg-refresh-btn" class="ios-btn ios-btn-primary">Refresh</button>
+                    </div>
+                </div>
+
+                <!-- Worker Gantt Container -->
+                <div class="advanced-gantt-scroll-wrapper" style="border: 1px solid var(--gray-200); border-radius: 16px; overflow: hidden;">
+                    <div class="advanced-gantt-grid-container">
+                        <div class="gantt-corner-box"></div>
+                        <div class="gantt-header-advanced"></div>
+                        <div class="gantt-sidebar-advanced"></div>
+                        <div id="worker-gantt-container-advanced"></div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="ios-gantt-legend">
+                    <span style="font-weight: 600; color: var(--text-secondary);">Legend:</span>
+                    <div id="wg-product-legend">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="border: 2px solid var(--ios-red); background: white;"></div>
+                        <span>Critical Path</span>
+                    </div>
+                    <div class="ios-gantt-legend-item">
+                        <div class="ios-gantt-legend-color" style="background: var(--ios-yellow);"></div>
+                        <span>Upstream/Downstream</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supply Chain View -->
+            <div id="supply-chain-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Supply Chain Analysis</h2>
+                        <p class="ios-section-subtitle">Late Parts Impact Assessment</p>
+                    </div>
+                </div>
+
+                <div class="ios-table-container">
+                    <div class="ios-table-header">
+                        <h3 class="ios-table-title">Late Parts Tracker</h3>
+                    </div>
+                    <table class="ios-table" id="late-parts-table">
+                        <thead>
+                            <tr>
+                                <th>Part ID</th>
+                                <th>Product</th>
+                                <th>On-Dock Date</th>
+                                <th>Scheduled Start</th>
+                                <th>Impact Score</th>
+                                <th>Affected Tasks</th>
+                                <th>Downstream (Hours)</th>
+                                <th>Direct Successor(s)</th>
+                                <th>Team</th>
+                            </tr>
+                        </thead>
+                        <tbody id="late-parts-table-body">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 40px;">
+                                    <div class="ios-loading">
+                                        <div class="ios-spinner"></div>
+                                        <p>Loading supply chain data...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="ios-card" style="margin-top: 24px;">
+                    <p><strong>Total late parts tracked:</strong> <span id="total-late-parts">0</span></p>
+                </div>
+            </div>
+
+            {% include 'partials/_development_board_view.html' %}
+
+            <!-- Industrial Engineering View -->
+            <div id="industrial-engineering-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Industrial Engineering</h2>
+                        <p class="ios-section-subtitle">Task Duration & Efficiency Analysis</p>
+                    </div>
+                </div>
+
+                <div class="ios-table-container">
+                    <div class="ios-table-header">
+                        <h3 class="ios-table-title">IE Review Queue</h3>
+                    </div>
+                    <table class="ios-table" id="ie-review-table">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>Product</th>
+                                <th>Standard Duration</th>
+                                <th>Actual Duration</th>
+                                <th>Variance %</th>
+                                <th>Frequency</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ie-review-table-body">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                                    Loading IE data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Schedule Budget View -->
+            <div id="schedule-budget-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Schedule Budget</h2>
+                        <p class="ios-section-subtitle">Resource allocation and budget analysis</p>
+                    </div>
+                </div>
+
+                <div class="ios-card">
+                    <div class="ios-empty-state">
+                        <div class="ios-empty-icon">💰</div>
+                        <h3 class="ios-empty-title">Budget Analysis</h3>
+                        <p class="ios-empty-description">Schedule budget analysis module. Data will be loaded from schedule.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenario View -->
+            <div id="scenario-view" class="ios-view-content view-content">
+                <div class="ios-section-header">
+                    <div>
+                        <h2 class="ios-section-title">Priority Impact Analysis</h2>
+                        <p class="ios-section-subtitle">Assign priority ranks to aircraft and compare scenarios side by side</p>
+                    </div>
+                </div>
+
+                <div class="ios-card">
+                    <div class="ios-card-header">
+                        <h3 class="ios-card-title">Aircraft Priority Order</h3>
+                    </div>
+                    <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 14px;">Assign rank 1 (highest) through N for aircraft you want to prioritize. Leave as "Any" to let the optimizer decide.</p>
+
+                    <div id="priorityAssignmentGrid" style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; max-width: 360px; margin-bottom: 16px;">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <div style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 16px;">
+                        <div>
+                            <label for="scenarioLabelInput" style="font-weight: 600; display: block; margin-bottom: 4px; font-size: 13px;">Scenario Label (optional)</label>
+                            <input type="text" id="scenarioLabelInput" placeholder="e.g. Rush Line 1256" style="padding: 8px 12px; border: 1px solid var(--border-color, #ccc); border-radius: 8px; font-size: 13px; width: 200px; background: var(--bg-secondary, #f5f5f5);">
+                        </div>
+                        <button id="runScenarioBtn" class="ios-btn ios-btn-primary" style="padding: 10px 24px;">
+                            Estimate Impact
+                        </button>
+                    </div>
+                    <p style="font-size: 11px; color: var(--text-tertiary, #888); margin-top: 8px;">Runs instantly (no full optimization)</p>
+                </div>
+
+                <!-- Keep hidden select for JS compatibility -->
+                <select id="scenarioProductSelect" style="display: none;"></select>
+
+                <!-- Spinner -->
+                <div id="scenarioSpinner" style="display: none;">
+                    <div class="ios-card" style="text-align: center; padding: 40px;">
+                        <div class="ios-spinner" style="margin: 0 auto 15px;"></div>
+                        <p style="color: var(--text-secondary);">Estimating priority impact...</p>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="scenarioResult" style="display: none;">
+                    <div id="scenarioSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; margin-top: 20px;"></div>
+
+                    <div class="ios-card">
+                        <div class="ios-card-header">
+                            <h3 class="ios-card-title" id="scenarioResultTitle"></h3>
+                        </div>
+                        <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 15px;">Estimated on: <span id="scenarioResultDate"></span></p>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--bg-secondary, #f8f9fa); border-bottom: 2px solid var(--border-color, #dee2e6);">
+                                        <th style="padding: 12px; text-align: left; font-weight: 600;">Aircraft</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600;">Rank</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">Tasks</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">Baseline Day</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">Est. Day</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">Baseline Late</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">Est. Late</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600;">Impact</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comparison-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="ios-card" style="margin-top: 20px;">
+                        <div class="ios-card-header">
+                            <h3 class="ios-card-title">Resource Contention Details</h3>
+                        </div>
+                        <div id="contentionDetails" style="font-size: 13px;"></div>
+                    </div>
+
+                    <div style="background: #FFF3CD; padding: 12px 16px; border-radius: 8px; border-left: 4px solid #FFC107; font-size: 13px; color: #856404; margin-top: 16px;">
+                        <strong>Note:</strong> <span id="scenarioNote"></span>
+                    </div>
+                </div>
+
+                <!-- Side-by-Side Scenario Comparison -->
+                <div id="scenarioComparisonSection" style="display: none; margin-top: 24px;">
+                    <div class="ios-card">
+                        <div class="ios-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 class="ios-card-title">Scenario Comparison</h3>
+                            <button id="clearScenariosBtn" style="padding: 6px 14px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Clear All</button>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table id="scenarioSideBySideTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <!-- Built dynamically -->
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Previous Estimates -->
+                <div class="ios-card" style="margin-top: 24px;">
+                    <div class="ios-card-header">
+                        <h3 class="ios-card-title">Previous Estimates</h3>
+                    </div>
+                    <div id="savedScenariosList">
+                        <p style="color: var(--text-tertiary);">No estimates run yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            {% include 'partials/_commitments_view.html' %}
+            {% include 'partials/_economics_view.html' %}
+            {% include 'partials/_shiftbook_view.html' %}
+            {% include 'partials/_myday_view.html' %}
+            {% include 'partials/_capacity_view.html' %}
+            <!-- VENDOR ADD (INCREMENT 6 Part C, VENDOR_CHANGES.md): FF_app insight tabs -->
+            {% include 'partials/_arena_view.html' %}
+            {% include 'partials/_progression_view.html' %}
+            {% include 'partials/_excusals_view.html' %}
+            {% include 'partials/_explain_view.html' %}
+            {% include 'partials/_scorecard_view.html' %}
+        </main>
+    </div>
+
+    <!-- Task Chain Modal -->
+    <div id="task-chain-modal" class="ios-modal">
+        <div class="ios-modal-content">
+            <div class="ios-modal-header">
+                <h3 class="ios-modal-title">Dependency Chain: <span id="modal-task-id"></span></h3>
+                <button class="ios-modal-close chain-modal-close">&times;</button>
+            </div>
+            <div class="ios-modal-body" id="task-chain-content">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Delay Reason Modal -->
+    <div id="delayReasonModal" class="ios-modal">
+        <div class="ios-modal-content">
+            <div class="ios-modal-header">
+                <h3 class="ios-modal-title">Enter Delay Reason</h3>
+                <button class="ios-modal-close" onclick="closeDelayReasonModal()">&times;</button>
+            </div>
+            <div class="ios-modal-body">
+                <form id="delayReasonForm">
+                    <!-- Form content populated by JS -->
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Details Modal -->
+    <div id="taskDetailsModal" class="ios-modal">
+        <div class="ios-modal-content">
+            <div class="ios-modal-header">
+                <h3 class="ios-modal-title">Task Details - <span id="modalTeamName"></span></h3>
+                <button class="ios-modal-close" onclick="closeTaskDetailsModal()">&times;</button>
+            </div>
+            <div class="ios-modal-body" id="taskDetailsContent">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h3 id="help-modal-title">Help Guide</h3>
+                <button class="help-modal-close" onclick="closeHelpModal()">&times;</button>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-toc">
+                    <div class="help-toc-title">Contents</div>
+                    <div id="help-toc-body"></div>
+                </div>
+                <div class="help-content-scroll" id="help-body-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/help-modal.js', v='1.0') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard-js.js', v='2.0') }}"></script>
+    <script src="{{ url_for('static', filename='js/schedule-budget.js', v='1.0') }}"></script>
+    <script src="{{ url_for('static', filename='js/staffing-dashboard.js', v='1.0') }}"></script>
+    <script src="{{ url_for('static', filename='js/shift-performance.js', v='1.0') }}"></script>
+    <script src="{{ url_for('static', filename='js/burndown-chart.js', v='1.0') }}"></script>
+    <script>
+        // iOS-specific view switching - integrates with dashboard-js.js switchView function
+        document.querySelectorAll('.ios-nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const viewId = this.dataset.view;
+
+                // Update active tab styling (iOS style)
+                document.querySelectorAll('.ios-nav-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                // Call the main switchView function from dashboard-js.js
+                // This handles: currentView update, view content display, and data refresh
+                if (typeof switchView === 'function') {
+                    switchView(viewId);
+                } else {
+                    // Fallback if switchView not loaded yet
+                    document.querySelectorAll('.ios-view-content').forEach(view => {
+                        view.classList.remove('active');
+                        view.style.display = 'none';
+                    });
+                    const targetView = document.getElementById(viewId + '-view');
+                    if (targetView) {
+                        targetView.classList.add('active');
+                        targetView.style.display = 'block';
+                    }
+                    if (typeof currentView !== 'undefined') {
+                        currentView = viewId;
+                    }
+                }
+            });
+        });
+
+        // Override the original switchView to also update iOS tab styling
+        const originalSwitchView = typeof switchView === 'function' ? switchView : null;
+        if (originalSwitchView) {
+            window.switchView = function(view) {
+                // Update iOS tab styling
+                document.querySelectorAll('.ios-nav-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.view === view);
+                });
+                // Call original function
+                originalSwitchView(view);
+            };
+        }
+
+        // Modal close functionality
+        document.querySelectorAll('.ios-modal-close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                this.closest('.ios-modal').classList.remove('show');
+                this.closest('.ios-modal').style.display = 'none';
+            });
+        });
+
+        // Close modal on backdrop click
+        document.querySelectorAll('.ios-modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('show');
+                    this.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!-- Management View -->
+<div id="management-view" class="view-content">
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h3>Total Workforce</h3>
+            <div class="metric-value" id="totalWorkforce">0</div>
+            <div class="metric-label">mechanics & quality inspectors</div>
+        </div>
+        <div class="metric-card">
+            <h3>Makespan</h3>
+            <div class="metric-value" id="makespan">0</div>
+            <div class="metric-label">working days</div>
+        </div>
+        <div class="metric-card">
+            <h3>On-Time Delivery</h3>
+            <div class="metric-value" id="onTimeRate">0%</div>
+            <div class="metric-label">of products</div>
+        </div>
+        <div class="metric-card">
+            <h3>Avg Utilization</h3>
+            <div class="metric-value" id="avgUtilization">0%</div>
+            <div class="metric-label">across all teams</div>
+        </div>
+    </div>
+
+    <!-- Risk Traffic Light Panel (NEW) -->
+    <div class="risk-traffic-light-panel" style="margin: 25px 0; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 18px; color: #1F2937;">🚦 Aircraft Risk Status</h3>
+            <span id="riskLastUpdated" style="font-size: 12px; color: #6B7280;"></span>
+        </div>
+        <div id="riskTrafficLights" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+            <!-- On-Time (Green) -->
+            <div class="risk-card risk-green" style="background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #34D399;">
+                <div style="font-size: 36px; margin-bottom: 8px;">✅</div>
+                <div id="riskGreenCount" style="font-size: 32px; font-weight: 700; color: #065F46;">0</div>
+                <div style="font-size: 14px; color: #047857; font-weight: 600;">On-Time</div>
+                <div style="font-size: 11px; color: #059669; margin-top: 4px;">0-1 days late</div>
+            </div>
+            <!-- At Risk (Yellow) -->
+            <div class="risk-card risk-yellow" style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #FBBF24;">
+                <div style="font-size: 36px; margin-bottom: 8px;">⚠️</div>
+                <div id="riskYellowCount" style="font-size: 32px; font-weight: 700; color: #92400E;">0</div>
+                <div style="font-size: 14px; color: #B45309; font-weight: 600;">At Risk</div>
+                <div style="font-size: 11px; color: #D97706; margin-top: 4px;">1-5 days late</div>
+            </div>
+            <!-- Critical (Red) -->
+            <div class="risk-card risk-red" style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #F87171;">
+                <div style="font-size: 36px; margin-bottom: 8px;">🚨</div>
+                <div id="riskRedCount" style="font-size: 32px; font-weight: 700; color: #991B1B;">0</div>
+                <div style="font-size: 14px; color: #DC2626; font-weight: 600;">Critical</div>
+                <div style="font-size: 11px; color: #EF4444; margin-top: 4px;">>5 days late</div>
+            </div>
+        </div>
+        <!-- Critical Aircraft List -->
+        <div id="criticalAircraftList" style="margin-top: 15px; display: none;">
+            <div style="font-size: 13px; font-weight: 600; color: #991B1B; margin-bottom: 8px;">⚠️ Critical Aircraft Requiring Attention:</div>
+            <div id="criticalAircraftItems" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- Forecast Accuracy Widget (NEW) -->
+    <div class="forecast-accuracy-panel" style="margin: 25px 0; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 18px; color: #1F2937;">📊 Schedule Forecast Accuracy</h3>
+        </div>
+        <div id="forecastAccuracyContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+            <div class="accuracy-card" style="background: #F3F4F6; border-radius: 10px; padding: 16px; text-align: center;">
+                <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Tasks Scheduled</div>
+                <div id="forecastScheduled" style="font-size: 28px; font-weight: 700; color: #0033A0;">-</div>
+            </div>
+            <div class="accuracy-card" style="background: #F3F4F6; border-radius: 10px; padding: 16px; text-align: center;">
+                <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Success Rate</div>
+                <div id="forecastSuccessRate" style="font-size: 28px; font-weight: 700; color: #059669;">-</div>
+            </div>
+            <div class="accuracy-card" style="background: #F3F4F6; border-radius: 10px; padding: 16px; text-align: center;">
+                <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Unscheduled</div>
+                <div id="forecastUnscheduled" style="font-size: 28px; font-weight: 700; color: #DC2626;">-</div>
+            </div>
+            <div class="accuracy-card" style="background: #F3F4F6; border-radius: 10px; padding: 16px; text-align: center;">
+                <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Avg Lateness</div>
+                <div id="forecastLateness" style="font-size: 28px; font-weight: 700; color: #0033A0;">-</div>
+            </div>
+        </div>
+        <!-- Schedule Comparison Bar -->
+        <div style="margin-top: 15px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6B7280; margin-bottom: 6px;">
+                <span>Schedule Coverage</span>
+                <span id="forecastCoveragePercent">-</span>
+            </div>
+            <div style="background: #E5E7EB; border-radius: 8px; height: 12px; overflow: hidden;">
+                <div id="forecastCoverageBar" style="background: linear-gradient(90deg, #059669, #34D399); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="margin: 25px 0 15px; font-size: 18px; color: var(--dark);">Product Delivery Status</h3>
+    <div class="product-grid" id="productGrid">
+        <!-- Product cards will be populated here -->
+    </div>
+</div>

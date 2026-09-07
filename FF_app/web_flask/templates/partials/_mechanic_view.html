@@ -1,0 +1,48 @@
+<!-- Individual Mechanic View -->
+<div id="mechanic-view" class="view-content">
+    <div class="mechanic-header">
+        <div class="mechanic-info">
+            <div class="mechanic-select">
+                <label>Resource:</label>
+                <select id="mechanicSelect" style="min-width: 350px;">
+                    <option value="none">Select a resource...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter controls row -->
+    <div class="mechanic-filters" style="margin: 0 0 16px 0; padding: 0 4px;">
+        <div class="mechanic-filter-group">
+            <label>Team:</label>
+            <select id="mechFilterTeam">
+                <option value="all">All Teams</option>
+            </select>
+        </div>
+        <div class="mechanic-filter-group">
+            <label>Skill:</label>
+            <select id="mechFilterSkill">
+                <option value="all">All Skills</option>
+            </select>
+        </div>
+        <div class="mechanic-filter-group">
+            <label>Shift:</label>
+            <select id="mechFilterShift">
+                <option value="all">All Shifts</option>
+            </select>
+        </div>
+        <div class="mechanic-filter-group mechanic-search-group">
+            <label>Search:</label>
+            <input type="text" id="mechFilterSearch" placeholder="Search by name or ID..." style="min-width: 180px;" />
+        </div>
+    </div>
+
+    <div class="task-timeline">
+        <div class="timeline-header">
+            <span id="mechanicName" style="font-weight: 600;">Task Schedule</span>
+        </div>
+        <div id="mechanicTimeline">
+            <!-- Timeline items will be populated here -->
+        </div>
+    </div>
+</div>

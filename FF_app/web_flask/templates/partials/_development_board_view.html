@@ -1,0 +1,75 @@
+<!-- templates/partials/_development_board_view.html -->
+<div id="development-view" class="view-content" style="display: none;">
+    <div class="header">
+        <h2>Development Board</h2>
+        <p>Shadow pairings and certification time generated from schedule free blocks — check off completions to bank OJT hours.</p>
+    </div>
+
+    <div id="dev-status-banner" style="display:none; margin-bottom:15px; padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600;"></div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;">
+        <div style="background:#F3F4F6; border-radius:8px; padding:12px; text-align:center;">
+            <div style="font-size:11px; color:#6B7280;">Shadow Pairings</div>
+            <div id="devPairCount" style="font-size:24px; font-weight:700; color:#0033A0;">0</div>
+        </div>
+        <div style="background:#F3F4F6; border-radius:8px; padding:12px; text-align:center;">
+            <div style="font-size:11px; color:#6B7280;">Cert-Time Blocks</div>
+            <div id="devCertCount" style="font-size:24px; font-weight:700; color:#7C3AED;">0</div>
+        </div>
+        <div style="background:#F3F4F6; border-radius:8px; padding:12px; text-align:center;">
+            <div style="font-size:11px; color:#6B7280;">Completed</div>
+            <div id="devDoneCount" style="font-size:24px; font-weight:700; color:#059669;">0</div>
+        </div>
+        <div style="background:#F3F4F6; border-radius:8px; padding:12px; text-align:center;">
+            <div style="font-size:11px; color:#6B7280;">Thin-Bench Families</div>
+            <div id="devThinBench" style="font-size:24px; font-weight:700; color:#DC2626;">0</div>
+        </div>
+    </div>
+
+    <div style="margin-bottom:15px; display:flex; gap:10px; align-items:center;">
+        <label style="font-size:13px; color:#374151; font-weight:600;">Lead name (required for check-off):</label>
+        <input id="dev-lead-name" type="text" placeholder="Your name"
+               style="padding:6px 10px; border:1px solid #D1D5DB; border-radius:6px; font-size:13px;">
+        <button onclick="updateDevelopmentView()" style="padding:8px 16px; background:#0033A0; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px;">Refresh</button>
+    </div>
+
+    <div style="background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:20px; margin-bottom:25px;">
+        <h3 style="margin:0 0 12px; font-size:16px;">🎓 Shadow Pairings</h3>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead><tr style="text-align:left; color:#6B7280; border-bottom:2px solid #E5E7EB;">
+                <th style="padding:8px;">Apprentice</th><th>Mentor</th><th>Task</th>
+                <th>Family</th><th>Day / Shift</th><th>Window</th><th>Min</th>
+                <th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody id="dev-pairs-body"></tbody>
+        </table>
+        </div>
+    </div>
+
+    <div style="background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:20px; margin-bottom:25px;">
+        <h3 style="margin:0 0 12px; font-size:16px;">📜 Certification Time</h3>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead><tr style="text-align:left; color:#6B7280; border-bottom:2px solid #E5E7EB;">
+                <th style="padding:8px;">Mechanic</th><th>Cert</th><th>Family</th>
+                <th>Day / Shift</th><th>Window</th><th>Min</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody id="dev-certs-body"></tbody>
+        </table>
+        </div>
+    </div>
+
+    <div style="background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:20px;">
+        <h3 style="margin:0 0 12px; font-size:16px;">🏋️ Bench Depth by Job Family</h3>
+        <p style="font-size:12px; color:#6B7280; margin:0 0 10px;">People at competent-or-better (positive touch evidence). Families under 2 are single-point-of-failure risks and are targeted first for shadowing.</p>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead><tr style="text-align:left; color:#6B7280; border-bottom:2px solid #E5E7EB;">
+                <th style="padding:8px;">Family</th><th>Fleet Depth</th><th>Teams</th>
+            </tr></thead>
+            <tbody id="dev-bench-body"></tbody>
+        </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,3 @@
+# Runtime state the vendored dashboard creates on boot (shift-performance
+# history SQLite) — never committed; regenerated on every run.
+data/

@@ -1,0 +1,194 @@
+<!-- My Day View (NEW — individual mechanic tab; additive only) -->
+<div id="my-day-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>My Day</h2>
+        <p class="view-description">
+            One mechanic's card: today's tasks in order, and the next
+            working day's preview — safe to show because the commitment
+            layer keeps the near-term book from reshuffling between shifts.
+        </p>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:end; margin-bottom:16px; flex-wrap:wrap;">
+        <div><label style="font-size:11px; color:#777; display:block;">Mechanic (BEMS)</label>
+            <select id="mdBems" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></select></div>
+        <button id="mdLoad" style="padding:7px 16px; border:none; border-radius:6px; background:#1976d2; color:#fff; cursor:pointer;">Load</button>
+        <div id="mdSummary" style="font-size:12px; color:#777; margin-left:8px;"></div>
+        <!-- VENDOR ADD (INCREMENT 6 Part C, VENDOR_CHANGES.md): write-back status line -->
+        <div id="mdWriteStatus" style="font-size:12px; color:#777; margin-left:8px;"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start;">
+        <div>
+            <h3 style="margin-bottom:8px;">Today</h3>
+            <div id="mdToday" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+        <div>
+            <h3 id="mdPreviewTitle" style="margin-bottom:8px;">Next day preview</h3>
+            <div id="mdPreview" style="display:flex; flex-direction:column; gap:8px; opacity:0.85;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function hhmm(iso) {
+        if (!iso) return '—';
+        const m = String(iso).match(/T(\d\d:\d\d)/);
+        return m ? m[1] : iso;
+    }
+
+    function card(r, actions) {
+        const border = r.state === 'blocked' ? '#c62828'
+            : r.state === 'in_progress' ? '#e65100'
+            : r.isCritical ? '#6a1b9a' : '#e0e0e0';
+        return '<div style="border:1px solid #e0e0e0; border-left:4px solid ' + border +
+            '; border-radius:8px; padding:10px 12px; background:#fff;">' +
+            '<div style="display:flex; justify-content:space-between; font-size:13px;">' +
+            '<b>' + hhmm(r.startTime) + '–' + hhmm(r.endTime) + '</b>' +
+            '<span>A/C ' + r.line + '</span></div>' +
+            '<div style="font-family:monospace; font-size:12px; margin:2px 0;">' + r.taskId + '</div>' +
+            '<div style="font-size:11px; color:#777;">' + (r.team || '') +
+            (r.skill && r.skill !== 'ANY' ? ' · skill ' + r.skill : '') +
+            ' · ' + (r.durationMinutes || 0) + ' min' +
+            (r.mechanicIds.length > 1 ? ' · crew of ' + r.mechanicIds.length : '') +
+            (r.isCritical ? ' · <span style="color:#6a1b9a;">critical path</span>' : '') +
+            (r.state === 'in_progress' ? ' · <span style="color:#e65100;">carryover</span>' : '') +
+            '</div>' +
+            /* VENDOR ADD (INCREMENT 6 Part C, VENDOR_CHANGES.md): tap-to-report
+               buttons — the actuals write-back through the FF bridge (OR-6:
+               the FF backend's POST /api/v1/actuals is the single write-path;
+               this UI only reports, it never mutates plan data locally). */
+            (actions ? '<div class="md-actions" style="margin-top:6px; display:flex; gap:6px;">' +
+                '<button data-md-action="in_progress" data-md-task="' + r.taskId +
+                '" style="padding:3px 10px; border:1px solid #e65100; border-radius:6px; background:#fff; color:#e65100; font-size:11px; cursor:pointer;">▶ Start</button>' +
+                '<button data-md-action="done" data-md-task="' + r.taskId +
+                '" style="padding:3px 10px; border:1px solid #2e7d32; border-radius:6px; background:#fff; color:#2e7d32; font-size:11px; cursor:pointer;">✓ Done</button>' +
+                '<button data-md-action="blocked" data-md-task="' + r.taskId +
+                '" style="padding:3px 10px; border:1px solid #c62828; border-radius:6px; background:#fff; color:#c62828; font-size:11px; cursor:pointer;">⛔ Blocked</button>' +
+                '</div>' : '') +
+            '</div>';
+    }
+
+    function render(d) {
+        document.getElementById('mdSummary').textContent =
+            d.tasks.length + ' tasks today · ' + d.totalMinutes + ' planned minutes';
+        document.getElementById('mdToday').innerHTML =
+            d.tasks.map(function (r) { return card(r, true); }).join('') ||
+            '<div style="color:#777; font-size:13px;">No tasks today.</div>';
+        document.getElementById('mdPreviewTitle').textContent =
+            d.previewDay != null
+                ? 'Preview — day +' + (d.previewDay - d.day)
+                : 'Next day preview';
+        document.getElementById('mdPreview').innerHTML =
+            d.preview.map(function (r) { return card(r, false); }).join('') ||
+            '<div style="color:#777; font-size:13px;">No upcoming work found in the next 7 days.</div>';
+    }
+
+    function load() {
+        const bems = document.getElementById('mdBems').value;
+        if (!bems) return;
+        fetch('/api/myday?bems=' + encodeURIComponent(bems))
+            .then(r => r.json()).then(render);
+    }
+
+    /* ------------------------------------------------------------------
+       VENDOR ADD (INCREMENT 6 Part C, VENDOR_CHANGES.md): the actuals
+       write-back loop.  Sequence per the Part C addendum:
+         1. POST /api/ff/actuals  (bridge translates taskId -> FF task_id
+            and BEMS -> FF mech id, forwards to FF POST /api/v1/actuals —
+            OR-6 single write-path; 409 done-reopen => confirm + force)
+         2. POST /api/ff/replan   (FF re-runs the scheduler and re-exports
+            the max_v1 envelope; the bridge then runs the local refresh)
+         3. POST /api/refresh     (fallback only if the bridge could not
+            refresh — same endpoint, idempotent)
+         4. re-fetch the day so the reported task reflects the new plan.
+       Blocked prompts for a parts-ETA day; FF v1 /actuals accepts state
+       transitions (task_id/state/remaining_minutes/force) and ignores
+       the ride-along parts_eta_day/bems keys — forwarded verbatim for
+       the audit trail, honestly documented in VENDOR_CHANGES.md.
+       ------------------------------------------------------------------ */
+    let mdBusy = false;
+
+    function mdStatus(msg, color) {
+        const el = document.getElementById('mdWriteStatus');
+        el.textContent = msg || '';
+        el.style.color = color || '#777';
+    }
+
+    function mdPost(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body || {}),
+        }).then(function (r) {
+            return r.json().catch(function () { return {}; })
+                .then(function (d) { return {status: r.status, ok: r.ok, d: d}; });
+        });
+    }
+
+    function mdReport(taskId, newState) {
+        if (mdBusy) return;
+        const body = {taskId: taskId, state: newState,
+                      bems: document.getElementById('mdBems').value};
+        if (newState === 'blocked') {
+            const eta = prompt('Parts ETA (day number; leave blank if unknown):');
+            if (eta === null) return; // cancelled
+            if (eta.trim() !== '' && !isNaN(parseInt(eta, 10))) {
+                body.parts_eta_day = parseInt(eta, 10);
+            }
+        }
+        mdBusy = true;
+        mdStatus('reporting ' + taskId + ' → ' + newState + '…');
+        mdPost('/api/ff/actuals', body).then(function (res) {
+            if (res.status === 409 && res.d.code === 'done_reopen_requires_force') {
+                if (!confirm('Task ' + taskId + ' is already DONE. Reopen it as ' +
+                             newState + '?')) {
+                    mdBusy = false; mdStatus('');
+                    return null;
+                }
+                body.force = true;
+                return mdPost('/api/ff/actuals', body);
+            }
+            return res;
+        }).then(function (res) {
+            if (res === null) return null;
+            if (!res.ok) throw new Error(res.d.error || ('actuals HTTP ' + res.status));
+            mdStatus('replanning (FF engine + envelope re-export)…');
+            return mdPost('/api/ff/replan', {});
+        }).then(function (res) {
+            if (res === null) return null;
+            if (!res.ok) throw new Error(res.d.error || ('replan HTTP ' + res.status));
+            if (res.d.dashboard_refreshed) return res;
+            // Fallback: the bridge could not reload — do it explicitly.
+            mdStatus('refreshing dashboard…');
+            return mdPost('/api/refresh', {});
+        }).then(function (res) {
+            if (res === null) return;
+            mdBusy = false;
+            mdStatus('reported · new plan loaded', '#2e7d32');
+            load(); // re-fetch the day from the fresh envelope
+        }).catch(function (e) {
+            mdBusy = false;
+            mdStatus('write-back failed: ' + (e.message || e), '#c62828');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/myday/options').then(r => r.json()).then(o => {
+            document.getElementById('mdBems').innerHTML =
+                o.mechanics.map(m => '<option>' + m + '</option>').join('');
+            load();
+        });
+        document.getElementById('mdLoad') && document.getElementById('mdLoad').addEventListener('click', load);
+        // VENDOR ADD (INCREMENT 6 Part C): delegate clicks from the
+        // per-task action buttons (today column only).
+        document.getElementById('mdToday').addEventListener('click', function (ev) {
+            const btn = ev.target.closest('button[data-md-action]');
+            if (!btn) return;
+            mdReport(btn.getAttribute('data-md-task'),
+                     btn.getAttribute('data-md-action'));
+        });
+    });
+})();
+</script>

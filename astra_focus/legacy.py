@@ -1,6 +1,6 @@
 """Mount the preserved FOCUS Flask views as a director-only comparison surface.
 
-No source is rewritten. Reads use the authenticated FF functions in this process,
+Templates load bundled browser libraries. Reads use the authenticated FF functions in this process,
 eliminating the upstream bridge's director/all service-login transport. Actuals
 and planning controls live in the ASTRA operational workspace.
 """

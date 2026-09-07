@@ -6,7 +6,6 @@ var
 .env
 users.json
 integration_tests
-upstream/.git
-upstream/FF_app/outputs
-upstream/FF_app/data/fleet50.json.gz
-upstream/FF_app/web_flask/data
+FF_app/outputs
+FF_app/data/fleet50.json.gz
+FF_app/web_flask/data

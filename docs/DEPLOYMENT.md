@@ -1,73 +1,101 @@
 # Run and deploy ASTRA FOCUS
 
+ASTRA-FOCUS-1 contains every application component, including the FF_app engine, original FOCUS Flask dashboards, browser libraries and sample-data generator. A normal clone or GitHub source ZIP is sufficient. Reference repositories are provenance only.
+
+The host installs the pinned Python framework packages from `requirements.txt`. No external application repository, CDN, database server, LLM account, Node build, or private GitHub token is required. SQLite and operational files live on the application's persistent disk. An already-built Docker image can run without outbound internet access.
+
+## Live hosting on Render
+
+[Deploy this repository on Render](https://render.com/deploy?repo=https://github.com/JaredVogler2/ASTRA-FOCUS-1)
+
+1. Sign in to Render and open the deployment link. Alternatively, choose **New → Blueprint**, connect GitHub, and select `JaredVogler2/ASTRA-FOCUS-1` on `main`.
+2. Render reads the checked-in `render.yaml`. Enter `ASTRA_ADMIN_USERNAME` and `ASTRA_ADMIN_PASSWORD` when prompted. Use a unique password of at least 12 characters; enter it in Render, never in GitHub.
+3. Review and approve the hosting charges. This configuration requests **one CPU / 2 GB RAM** and a **5 GB persistent disk**. The app previously measured approximately 547 MiB peak memory, so a 512 MB instance is too small. A paid service is necessary for a persistent disk. See [current pricing](https://render.com/pricing) and [persistent disk behavior](https://render.com/docs/disks).
+4. Create the Blueprint. The host installs packages, creates the first administrator with a password hash, generates the synthetic 50-aircraft fleet, and starts Gunicorn. Allow several minutes for the initial build and scheduling run.
+5. When the service becomes healthy, open the `https://…onrender.com` URL displayed by Render and sign in with the administrator account. `/readyz` must return HTTP 200; an unauthenticated `/api/astra/tasks` request must return 401.
+
+The initial installation uses **password-protected sample data**. `ASTRA_DEMO=0` keeps self-selected roles disabled. `ASTRA_GENERATE_SAMPLE_DATA=1` explicitly creates a fleet when no `FF_DATA` file is configured; the workspace labels that data as synthetic.
+
+The Blueprint stores the fleet, accounts, actuals, baselines, plans, audit, notes and roster settings under `/var/data/astra-focus`. Restarts retain that directory. The administrator bootstrap only creates a missing account file; changing its environment password does not overwrite existing accounts. After the first successful sign-in, remove `ASTRA_ADMIN_PASSWORD` from Render's environment. Persisted account hashes continue to work.
+
+Automatic redeployment is initially off. To release later repository changes, choose **Manual Deploy → Deploy latest commit** after CI succeeds. You can enable automatic deployment after successful checks in Render if desired. A service with an attached disk has a brief outage during redeployment; keep it to one instance. [Blueprint reference](https://render.com/docs/blueprint-spec), [deployment link behavior](https://render.com/docs/deploy-to-render).
+
+Render supplies the HTTPS origin through `RENDER_EXTERNAL_URL`; the application uses it for same-origin write checks even when the internal proxy connection is HTTP. For a custom domain, set `ASTRA_PUBLIC_ORIGIN=https://your-domain.example` and use that canonical URL. Secure cookies remain enabled; arbitrary forwarded headers are not trusted.
+
+A Render account and approval of its charges are the remaining hosting actions. The repository does not create a paid service merely by being pushed to GitHub. If managing deployment through ChatGPT, connect the Render integration to the account/workspace you want to use.
+
 ## Local synthetic demonstration
 
-Clone recursively with authenticated GitHub access. `upstream` is private; a ZIP of the public repository does not contain that dependency.
-
 ```bash
-git clone --recurse-submodules https://github.com/JaredVogler2/ASTRA-FOCUS-1.git
+git clone https://github.com/JaredVogler2/ASTRA-FOCUS-1.git
 cd ASTRA-FOCUS-1
 docker compose up --build
 ```
 
-The application is at `http://localhost:8080`. The Compose file exposes localhost only and stores the synthetic fleet, actuals, session key, plan database and envelopes in the `focus-state` volume. `docker compose down` retains that volume. Removing the volume deletes the demonstration's saved state.
+Open `http://localhost:8080`. The Compose configuration exposes localhost only, enables sample personas, and persists its state in the `focus-state` volume. `docker compose down` retains the volume. Removing the volume deletes saved state.
 
-The full-fleet demonstration uses the original generator defaults: 50 aircraft, 680 mechanics, seed 20260710. For Python-only local runs, set `ASTRA_DEMO=1` and use `gunicorn -c gunicorn.conf.py wsgi:app` after installing requirements.
-
-## Non-demo configuration
-
-The account creator prompts for a password and writes a mode-0600 JSON file containing a hash, never the password:
+Python alternative on Linux/macOS with Python 3.12:
 
 ```bash
-python scripts/create_user.py --file /private/focus/users.json --username lead01 --role lead --scope T01
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+ASTRA_DEMO=1 gunicorn -c gunicorn.conf.py wsgi:app
 ```
 
-Supported role/scope pairs:
+The generator defaults are 50 aircraft, 680 mechanics, seed 20260710. `ASTRA_AIRCRAFT` can change the initial fleet size; it does not replace an existing saved fleet. The complete source ZIP follows these same instructions after extraction.
 
-| Role | Scope value |
+## Accounts and real input data
+
+Create or update accounts using the host shell. This command prompts for a password and writes a private JSON file containing its hash:
+
+```bash
+python scripts/create_user.py --file /var/data/astra-focus/users.json --username lead01 --role lead --scope T01
+```
+
+Restart the application after an account change. The same command updates a forgotten password; bootstrap environment variables do not reset existing accounts.
+
+| Role | Scope |
 |---|---|
 | mechanic | Exact mechanic ID from the fleet roster |
 | lead, flm | Exact team ID |
-| super | Exact group ID from the original FF organization map |
+| super | Exact group ID from the FF organization map |
 | director, vp | `all` |
 
-Configure the host's environment manager:
+For real input data, create a separate installation/state directory so its plans and actuals are not mixed with the sample fleet. Place the reviewed FF fleet JSON.gz file on persistent storage, set `FF_DATA` to its absolute path, set `ASTRA_GENERATE_SAMPLE_DATA=0`, and create accounts with the IDs from that fleet. Deploy in the environment approved for the actual data being used.
 
-| Variable | Required behavior |
+| Variable | Purpose |
 |---|---|
-| `ASTRA_DEMO=0` | Uses authenticated accounts; self-selected personas disabled |
-| `FF_SECRET_KEY` | Random application secret, stored by the host; never checked in |
-| `ASTRA_USERS_FILE` | Absolute path to the private server-owned account file |
-| `FF_DATA` | Absolute path to a validated FF fleet JSON.gz file |
-| `ASTRA_STATE_DIR` | Writable, persistent directory retained through restarts/redeployments |
-| `ASTRA_LEGACY` | `1` to include preserved comparison dashboards; `0` to omit them |
-| `FF_LLM_PROVIDER=none` | Deterministic non-LLM operation; optional upstream providers require their own reviewed configuration |
+| `ASTRA_DEMO=0` | Password authentication and server-assigned roles |
+| `FF_SECRET_KEY` | Random session secret; generated automatically by the Blueprint |
+| `ASTRA_STATE_DIR` | Writable persistent directory; `/var/data/astra-focus` in Render |
+| `ASTRA_USERS_FILE` | Optional alternate account-file path; defaults to `ASTRA_STATE_DIR/users.json` |
+| `ASTRA_ADMIN_USERNAME`, `ASTRA_ADMIN_PASSWORD` | First-start director account, only when account file is absent |
+| `FF_DATA` | Absolute path to an existing validated fleet JSON.gz |
+| `ASTRA_GENERATE_SAMPLE_DATA=1` | Generate a labeled synthetic fleet if `FF_DATA` is unset |
+| `ASTRA_AIRCRAFT` | Generated aircraft count, 1–100; default 50 |
+| `ASTRA_LEGACY=1` | Include original FOCUS comparison dashboards |
+| `FF_LLM_PROVIDER=none` | Run without an LLM service |
+| `PORT` | Host-provided listening port; default 8080 |
+| `ASTRA_PUBLIC_ORIGIN` | Optional canonical HTTPS origin for a reverse proxy/custom domain |
 
-The `.env.example` is a reference. Plain Gunicorn does not automatically load it. Configure the environment using your host or shell; do not expect copying `.env.example` to enable authentication.
+`.env.example` is a reference; Gunicorn does not automatically load it. Use your host's environment configuration.
 
-Terminate HTTPS on the approved private application gateway. Secure session cookies are required outside demo mode. If a reverse proxy terminates HTTPS, it must preserve the application origin correctly for the CSRF origin comparison. This build does not blindly trust arbitrary forwarded headers. Configure the hosting adapter's trusted proxy handling for that deployment before use.
+## Other Python hosts, including Posit Connect
 
-## Host constraints
+Use Python 3.12 and `wsgi.py` as the WSGI entrypoint. Include this repository in the deployment bundle; there is no submodule initialization or second service. Configure the account, dataset, secret and persistent directory as above, then expose the application through an HTTPS gateway. For a proxy host, set `ASTRA_PUBLIC_ORIGIN` to the exact HTTPS origin.
 
-- Python 3.12, Flask and Gunicorn. Container entrypoint: `wsgi:app`.
-- Exactly **one worker and one application instance**. Four threads may serve it, but shared-state operations serialize. A 409 busy response is an explicit retry condition.
-- `/healthz` is liveness; `/readyz` is engine readiness.
-- Configure a 300-second request timeout and sufficient startup time for full-fleet scheduling and plan serialization.
-- Measured peak memory with the preserved full-fleet dashboard was approximately 547 MiB. Provision headroom for replans, retained envelopes and larger datasets; 128 MiB JavaScript Workers cannot run this application.
-- Keep the state directory and user file private, back them up, and retain a consistent copy of the input dataset alongside backups. Restore while the application is stopped.
+Run **one worker and one application instance**. Gunicorn permits four threads, but scheduling/state operations serialize; HTTP 409 busy responses can be retried. The WSGI entrypoint locks the state directory. Use a 300-second request timeout and allow startup time for full-fleet scheduling. `/healthz` is liveness and `/readyz` is readiness.
 
-The preserved dashboard's old local SQLite comparison database is not the new operational source of truth. Legacy mutation routes are disabled. ASTRA's actuals, baselines, roster settings and notes are the supported operational workflow.
+Back up the persistent directory and the input fleet together while the application is stopped. SQLite, actuals and the plan lineage must be restored as one consistent snapshot. The inherited comparison database is not the operational source of truth; original dashboard mutation routes are disabled.
 
-## Posit Connect
+The application runs independently of enterprise SSO, MES, Teradata or SQL Server. Feed adapters and enterprise identity integration remain separate configuration/development work when those systems are required.
 
-Deploy the Python content with `wsgi.py` as the WSGI entrypoint, the recursively initialized private dependency included in the deployment bundle, and the same environment variables above. Set process/instance limits to one and supply persistent state storage. Provision authentication, an HTTPS origin, filesystem permissions and any enterprise data feeds in the approved environment.
+## Verification
 
-## Data integration
+```bash
+python -m pip install -r requirements-dev.txt
+python scripts/verify.py
+```
 
-The input contract remains `FF_app/ff/domain.py`. Configure `FF_DATA` to the reviewed source extract before starting. Missing configured input files fail startup rather than falling back to an unrelated demo. The scheduler's original validator checks the resulting plan; it does not certify source-system joins, business semantics or authorization to process enterprise data.
-
-MES/Teradata/SQL Server feed adapters, enterprise SSO and a hosted Python service have not been connected in this delivery. External ingestion must preserve the single actuals write path and role/source attribution. No production records or credentials are included in this repository.
-
-## Continuous verification
-
-Run `python scripts/verify.py` with access to the private submodule. A CI runner needs read access to `FABLE_FOCUS_REVIEW`; the public target repository's default token does not grant access to unrelated private repositories. Do not publish a source archive or CI artifact containing the private dependency to this public repository.
+The checked-in GitHub Actions workflow uses a normal checkout with the repository's default read token. It runs the integration suite, original engine tests and gates, points checks, all six benchmarks, and a container build/readiness check. No access to any other repository is required.

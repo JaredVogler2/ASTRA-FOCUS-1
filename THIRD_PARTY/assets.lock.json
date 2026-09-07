@@ -1,0 +1,22 @@
+[
+  {
+    "path": "FF_app/web_flask/static/js/vendor/vis-timeline-7.4.8.min.js",
+    "source_url": "https://cdnjs.cloudflare.com/ajax/libs/vis-timeline/7.4.8/vis-timeline-graph2d.min.js",
+    "sha256": "44ffc3a154916db8ea43a8190cd119e3126a3fe8039c5f1ea282d87f7c5156c2"
+  },
+  {
+    "path": "FF_app/web_flask/static/css/vendor/vis-timeline-7.4.8.min.css",
+    "source_url": "https://cdnjs.cloudflare.com/ajax/libs/vis-timeline/7.4.8/vis-timeline-graph2d.min.css",
+    "sha256": "7c03e9dbba782637e58e8ce711ab3e65b1e95777c1c8dd200e76bee3fafb5557"
+  },
+  {
+    "path": "FF_app/web_flask/static/js/vendor/chart-4.4.0.umd.js",
+    "source_url": "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js",
+    "sha256": "321e3a3fa98da4aaa957d10be57cbb514de0989eed8f9d726b5d05902cd01904"
+  },
+  {
+    "path": "FF_app/web_flask/static/js/vendor/xlsx-0.18.5.full.min.js",
+    "source_url": "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+    "sha256": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99"
+  }
+]

@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
-ff=root/'upstream/FF_app'
+ff=root/'FF_app'
 commands=[(root,[sys.executable,'-m','pytest','-q','integration_tests']),
           (ff,[sys.executable,'-m','pytest','-q']),
           (ff,[sys.executable,'run.py','gates']),

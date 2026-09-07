@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Risk &amp; Commitments — FF FOCU5{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Risk &amp; Commitments</h1>
+
+  <div class="banner-inline">
+    PLACEHOLDER $ EXPOSURE (OR-5): rates are config defaults
+    (source: <code>{{ econ.source }}</code>) — directional, not contractual.
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="stat-v">${{ '{:,}'.format(econ.total_penalty_usd or 0) }}</div><div class="stat-l">total exposure</div></div>
+    <div class="stat"><div class="stat-v">${{ '{:,}'.format(econ.controllable_penalty_usd or 0) }}</div><div class="stat-l">controllable</div></div>
+    <div class="stat"><div class="stat-v">${{ '{:,}'.format(econ.unavoidable_penalty_usd or 0) }}</div><div class="stat-l">unavoidable</div></div>
+    <div class="stat"><div class="stat-v">{{ econ.late_count or 0 }}</div><div class="stat-l">late aircraft</div></div>
+  </div>
+</section>
+
+<div class="two-col">
+<section class="card">
+  <h2>Committed vs projected <span class="muted small">(OR-4: commitments move on evidence, not jitter — run <code>{{ commitments.run_id or '—' }}</code>)</span></h2>
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th>Aircraft</th><th>Committed</th><th>Projected</th><th>Deadline</th><th>Delta</th></tr></thead>
+    <tbody>
+      {% for c in commitments.committed %}
+      <tr>
+        <td><span class="mono">{{ '%04d' | format(c.aircraft) }}</span></td>
+        <td>day {{ c.committed_day }}</td>
+        <td>day {{ c.projected_day }}</td>
+        <td>day {{ c.deadline_day }}</td>
+        <td>
+          {% if c.delta > 0 %}<span class="chip chip-warn">+{{ c.delta }}d slip pending</span>
+          {% elif c.delta < 0 %}<span class="chip chip-ok">{{ c.delta }}d ahead</span>
+          {% else %}<span class="chip chip-muted">holding</span>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No committed dates yet — the first replan commits every sighted aircraft.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">A projected date only moves the commitment via the §9
+     rules: jitter holds, big slips recommit at once (bad news fast), small
+     moves need a sustained streak of replans.</p>
+</section>
+
+<section class="card">
+  <h2>Commitment change log <span class="muted small">(last {{ commitments.changes | length }} — reasons verbatim)</span></h2>
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th>Run</th><th>Aircraft</th><th>Old → New</th><th>Δ days</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for ch in commitments.changes | reverse %}
+      <tr>
+        <td><code>{{ ch.run }}</code></td>
+        <td><span class="mono">{{ '%04d' | format(ch.aircraft) }}</span></td>
+        <td>{{ 'day ' ~ ch.old if ch.old is not none else '—' }} → day {{ ch.new }}</td>
+        <td>{% if ch.delta_days > 0 %}<span class="chip chip-warn">+{{ ch.delta_days }}</span>{% elif ch.delta_days < 0 %}<span class="chip chip-ok">{{ ch.delta_days }}</span>{% else %}0{% endif %}</td>
+        <td class="small">{{ ch.reason }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No commitment changes recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+</div>
+
+<div class="two-col">
+<section class="card">
+  <h2>Late-aircraft board <span class="muted small">(top {{ late_rows | length }} of {{ late_total }} by lateness)</span></h2>
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th>Aircraft</th><th>Deadline</th><th>Projected completion</th>
+               <th>Late by</th><th>Exposure</th><th>Unplaced tasks</th></tr></thead>
+    <tbody>
+      {% for r in late_rows %}
+      <tr class="row-late">
+        <td><span class="mono">{{ '%04d' | format(r.aircraft) }}</span> <span class="muted small">{{ r.name }}</span></td>
+        <td>day {{ r.deadline_day }}</td>
+        <td>day {{ r.completion_day }}</td>
+        <td><span class="chip chip-warn">{{ r.lateness_days }}d</span></td>
+        <td>${{ '{:,}'.format(r.penalty_usd) }}</td>
+        <td>{% if r.unscheduled_tasks %}<span class="chip chip-block" title="completion is optimistic while work is unplaceable">{{ r.unscheduled_tasks }}</span>{% else %}0{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No late aircraft in the current plan.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">A projected completion computed while tasks are still
+     unplaceable is optimistic — the "unplaced tasks" column keeps that honest.</p>
+</section>
+
+<section class="card">
+  <h2>Data trust</h2>
+  <dl class="trust">
+    <dt>Mock data</dt>
+    <dd>{% if trust.mock_data %}<span class="chip chip-warn">SYNTHETIC (mock_data: true)</span>{% else %}<span class="chip chip-err">UNLABELED — treat as untrusted</span>{% endif %}
+        <span class="muted small">seed {{ trust.seed }} · generated {{ trust.generated_at }}</span></dd>
+    <dt>Fixture</dt>
+    <dd class="mono small">{{ trust.data_source }}</dd>
+    <dt>Snapshot</dt>
+    <dd><code>{{ trust.snapshot_id }}</code> · built {{ trust.built_at }}
+        (<span id="trust-age" data-built-at="{{ trust.built_at }}">age n/a</span>)
+        · build #{{ trust.build_count }}</dd>
+    <dt>Validator (V1–V9)</dt>
+    <dd>{% if trust.validator_total == 0 %}<span class="chip chip-ok">0 violations</span>
+        {% else %}<span class="chip chip-err">{{ trust.validator_total }} violations</span>{% endif %}
+        <span class="muted small">{{ trust.validator_summary }}</span></dd>
+    <dt>Plan coverage</dt>
+    <dd>{{ trust.scheduled }} scheduled · {{ trust.unscheduled }} unscheduled (reason-coded, never faked)
+        · engine wall {{ trust.wall_seconds }}s</dd>
+    <dt>Live overrides</dt>
+    <dd>{{ trust.actuals_overrides }} actuals override(s) on disk ·
+        {{ trust.audit_entries }} audit entr(ies) this session (single write-path, OR-6) ·
+        {{ trust.manual_excusals }} manual excusal(s) captured</dd>
+    {% if trust.warnings %}
+    <dt>Warnings</dt>
+    <dd><ul class="list small">{% for w in trust.warnings %}<li>{{ w }}</li>{% endfor %}</ul></dd>
+    {% endif %}
+  </dl>
+</section>
+</div>
+{% endblock %}

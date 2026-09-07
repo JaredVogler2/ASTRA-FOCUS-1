@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}My Day+ — FF FOCU5{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>My Day+ <span class="muted">— {{ mech.mech_id }} · {{ mech.team }} · shift {{ mech.shift }} · skills {{ mech.skills | join(', ') }}</span></h1>
+  <p class="muted">
+    Your named-crew assignments in schedule order
+    (showing {{ shown_rows }} of {{ total_rows }}).
+    Team {{ mech.team }} currently has {{ team_unscheduled }} unscheduled task(s)
+    waiting for a full crew — never short-crewed (OR-1).
+  </p>
+
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Day</th><th>Shift</th><th>Window</th><th>Task</th><th>Skill</th>
+        <th>State</th><th>Readiness</th><th>Why points</th><th>Report actual</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr data-task="{{ r.task_id }}">
+        <td>{{ r.day }}</td>
+        <td>S{{ r.shift }}{% if r.uses_overtime %} <span class="chip chip-warn" title="end past effective minutes">OT</span>{% endif %}</td>
+        <td class="mono">{{ r.start }}–{{ r.end }}m</td>
+        <td><span class="mono">{{ r.task_id }}</span><br><span class="muted small">{{ r.name }}</span>
+            {% if r.crew | length > 1 %}<br><span class="small">crew: {{ r.crew | join(', ') }}</span>{% endif %}</td>
+        <td>{{ r.skill }}</td>
+        <td><span class="chip st-{{ r.state }}">{{ r.state }}</span>
+            {% if r.remaining is not none %}<span class="small muted">{{ r.remaining }}m left</span>{% endif %}</td>
+        <td>
+          {% if r.feas %}
+            <span class="chip chip-{{ r.feas_class }}">{{ r.feas.status }}</span>
+            {% for rc in (r.feas.reason_codes or [])[:3] %}<span class="chip chip-plain">{{ rc }}</span>{% endfor %}
+            {% if r.feas.blocking_task %}<span class="small muted">blocked by {{ r.feas.blocking_task }}</span>{% endif %}
+          {% else %}
+            <span class="chip chip-err" title="{{ r.feas_error }}">feasibility unavailable</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if r.points_error %}
+            <span class="chip chip-err" title="{{ r.points_error }}">points unavailable</span>
+          {% else %}
+            {% if r.score_total is not none %}<span class="chip chip-info">{{ r.score_total }} pts</span>{% endif %}
+            {% for c in r.chips %}<span class="chip chip-plain">{{ c.name }} +{{ c.points }}</span>{% endfor %}
+          {% endif %}
+        </td>
+        <td class="actions">
+          <select class="act-state">
+            {% for s in states %}<option value="{{ s }}" {% if s == r.state %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+          <input class="act-rem" type="number" min="0" step="1" placeholder="rem. min"
+                 value="{{ r.remaining if r.remaining is not none else '' }}">
+          <label class="small"><input type="checkbox" class="act-force"> force</label>
+          <button class="btn btn-small act-apply" type="button">Apply</button>
+          <span class="msg act-msg"></span>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="muted">No assignments in the current schedule involve you.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Reporting an actual persists immediately (single
+     write-path OR-6) but the schedule stays as-is until Replan.</p>
+</section>
+
+{# §G8 privacy default (team-first): individual stats are SELF-SCOPE ONLY —
+   this panel shows the logged-in mechanic their OWN contribution and is
+   opt-in to open (collapsed by default); no other persona's surface
+   aggregates per-mechanic points. #}
+<details class="card">
+  <summary><strong>My contribution</strong>
+    <span class="muted small">— private: visible only to you ({{ mech.mech_id }});
+    team-first display is the default (§G8), open to view your own stats</span>
+  </summary>
+  {% if contribution.error %}
+    <p class="chip chip-err" title="{{ contribution.error }}">contribution unavailable: {{ contribution.error }}</p>
+  {% endif %}
+  <div class="stat-row">
+    <div class="stat"><div class="stat-v">{{ contribution.done_count }}</div>
+      <div class="stat-l">of my crewed tasks completed</div></div>
+    <div class="stat"><div class="stat-v">{{ contribution.points }}</div>
+      <div class="stat-l">points of completed work (value, not task count — GG-2)</div></div>
+  </div>
+  <ul class="list">
+    {% for p in contribution.top %}
+      <li><span class="mono">{{ p.task_id }}</span>
+          <span class="chip chip-info">{{ p.points }} pts</span>
+          <span class="muted small">{{ p.explanation }}</span></li>
+    {% else %}
+      <li class="muted">No completed crewed tasks yet — points credit only real completions (GG-1).</li>
+    {% endfor %}
+  </ul>
+</details>
+{% endblock %}

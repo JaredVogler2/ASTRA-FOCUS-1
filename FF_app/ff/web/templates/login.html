@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Log in — FF FOCU5{% endblock %}
+{% block content %}
+<section class="card login-card">
+  <h1>Demo login</h1>
+  <p class="muted">Pick a persona. Scope is fixed server-side at login
+     (mechanic → own tasks, lead/flm → team, super → team group,
+     director/vp → all) and cannot be widened by request parameters.</p>
+
+  {% if login_error %}<p class="flash-err">{{ login_error }}</p>{% endif %}
+
+  <form method="post" action="/login" id="login-form">
+    <label for="login-role">Role</label>
+    <select id="login-role" name="role">
+      {% for r in roles %}
+        <option value="{{ r }}">{{ r }} — {{ role_labels[r] }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="scope-field" data-roles="mechanic">
+      <label for="scope-mechanic">Mechanic (mech_id)</label>
+      <select id="scope-mechanic" name="scope">
+        {% for m in mechanics %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="scope-field" data-roles="lead flm" hidden>
+      <label for="scope-team">Team</label>
+      <select id="scope-team" name="scope" disabled>
+        {% for t in teams %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="scope-field" data-roles="super" hidden>
+      <label for="scope-group">Team group</label>
+      <select id="scope-group" name="scope" disabled>
+        {% for g in groups %}<option value="{{ g.id }}">{{ g.label }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="scope-field" data-roles="director vp" hidden>
+      <p class="muted">Scope: <strong>all aircraft / all teams</strong> (read-oriented executive view).</p>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Enter</button>
+  </form>
+</section>
+{% endblock %}

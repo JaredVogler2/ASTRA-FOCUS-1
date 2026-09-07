@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Position Control — FF FOCU5{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Position Control <span class="muted">— group {{ scope_label }} ({{ teams | join(', ') }})</span></h1>
+
+  <h2>Capacity pressure <span class="muted small">($-weighted; {{ pressure_meta.source }} placeholder rate
+      ${{ '{:,}'.format(pressure_meta.penalty_usd_per_day) if pressure_meta.penalty_usd_per_day else '?' }}/day — OR-5)</span></h2>
+  <p class="muted small">{{ pressure_meta.method }} — attribution of where late
+     aircraft waited, not proof that staffing recovers the dollars.</p>
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th>Team</th><th>Shift</th><th>Wait days</th><th>$-days</th><th>Aircraft touched</th></tr></thead>
+    <tbody>
+      {% for p in pools %}
+      <tr>
+        <td>{{ p.team }}</td>
+        <td>S{{ p.shift }}</td>
+        <td>{{ p.wait_days }}</td>
+        <td>${{ '{:,}'.format(p.dollar_days) }}</td>
+        <td>{{ p.aircraft_touched }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No capacity waits attributed to this group's pools.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<div class="two-col">
+<section class="card">
+  <h2>Escalations <span class="muted small">(unscheduled reasons per team — delayed for a full crew, never short-crewed)</span></h2>
+  {% for e in escalations %}
+  <div class="esc">
+    <h3>{{ e.team }} <span class="muted small">{{ e.total }} unscheduled · {{ e.blocked }} blocked</span></h3>
+    <ul class="list">
+      {% for reason, n in e.reasons %}
+        <li><span class="chip chip-block">{{ reason }}</span> × {{ n }}</li>
+      {% endfor %}
+      {% if e.samples %}<li class="muted small">e.g. {{ e.samples | join(', ') }}</li>{% endif %}
+    </ul>
+  </div>
+  {% else %}
+  <p class="muted">No escalations: every task in this group is scheduled with a full crew.</p>
+  {% endfor %}
+</section>
+
+<section class="card">
+  <h2>Station progress <span class="muted small">(fleet-wide, aircraft-level)</span></h2>
+  <table class="tbl">
+    <thead><tr><th>Station</th><th>Aircraft</th><th>Tasks done</th><th>Late aircraft</th></tr></thead>
+    <tbody>
+      {% for s in stations %}
+      <tr>
+        <td>{{ s.station }}</td>
+        <td>{{ s.aircraft }}</td>
+        <td>
+          <div class="bar-track slim"><div class="bar-fill" style="width: {{ s.pct_done }}%"></div></div>
+          <span class="small">{{ s.pct_done }}% ({{ s.done }}/{{ s.total }})</span>
+        </td>
+        <td>{% if s.late %}<span class="chip chip-warn">{{ s.late }}</span>{% else %}<span class="chip chip-ok">0</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+</div>
+{% endblock %}

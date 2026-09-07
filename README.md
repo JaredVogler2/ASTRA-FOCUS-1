@@ -2,25 +2,25 @@
 
 A working manufacturing scheduling application built around the original **FF_app Python engine and FOCUS Flask dashboards**, with an integrated operational workspace for management, team leads, and mechanics.
 
-This repository contains the new application source, integration, tests, and deployment configuration. The original FF_app is pinned as the **private `upstream` Git submodule**. Access to `JaredVogler2/FABLE_FOCUS_REVIEW` is required to clone and run the complete application; private upstream code has not been republished into this public repository.
+This repository is the complete application source: the original **FF_app engine**, FOCUS Flask dashboards, ASTRA workspaces, browser libraries, tests, sample-data generator, and deployment configuration are all committed here. No submodules, other repositories, CDN assets, external database, or LLM service are required. Python framework packages are pinned in `requirements.txt` and installed during the build.
+
+## Live hosting
+
+[Deploy ASTRA FOCUS on Render](https://render.com/deploy?repo=https://github.com/JaredVogler2/ASTRA-FOCUS-1)
+
+The configuration includes one 2 GB Python instance, a 5 GB persistent disk, generated session secret, readiness checks, and first-start administrator setup. Enter an administrator username and a password of at least 12 characters in Render. A paid host is required for persistent storage. [Deployment guide](docs/DEPLOYMENT.md).
 
 ## Start the complete application
 
-With GitHub access to both repositories and Docker Compose installed:
+With Docker Compose installed:
 
 ```bash
-git clone --recurse-submodules https://github.com/JaredVogler2/ASTRA-FOCUS-1.git
+git clone https://github.com/JaredVogler2/ASTRA-FOCUS-1.git
 cd ASTRA-FOCUS-1
 docker compose up --build
 ```
 
 Open **http://localhost:8080**. The default Compose configuration runs an explicitly labeled **synthetic 50-aircraft demonstration** with persistent state. Select a director, executive, superintendent, manager, lead, or mechanic persona. Initial scheduling and plan capture take approximately 35 seconds in the measured environment; allow up to several minutes on a smaller machine.
-
-If already cloned without the dependency:
-
-```bash
-git submodule update --init --recursive
-```
 
 Python alternative, on Linux/macOS with Python 3.12:
 
@@ -45,11 +45,11 @@ ASTRA_DEMO=1 gunicorn -c gunicorn.conf.py wsgi:app
 | Plan history | Durable plan versions, parent lineage, user-attributed actuals, staffing, scenario and handover audit records |
 | Original FOCUS comparison | Both original Flask shells at `/dashboard` and `/dashboard/classic`, using the current FF envelope; director/executive access, read-only |
 
-The 22-tab original iOS shell and 23-tab classic shell remain in the private upstream source. The comparison surface retains their presentation and read paths. Use the ASTRA workspace for operational writes; inherited experimental/dashboard-local writes are deliberately disabled in the comparison. The original FF role pages and read APIs remain available, but the ASTRA workspace owns authenticated write interactions.
+The 22-tab original iOS shell and 23-tab classic shell are included in `FF_app/web_flask`. The comparison surface retains their presentation and read paths. Use the ASTRA workspace for operational writes; inherited experimental/dashboard-local writes are deliberately disabled in the comparison. The original FF role pages and read APIs remain available, but the ASTRA workspace owns authenticated write interactions.
 
 ## Core scheduling behavior
 
-The application directly imports the pinned FF scheduler. It does not replace it with the experimental TypeScript planner from ASTRA-SEPT-6.
+The application directly imports the bundled FF scheduler. It does not replace it with the experimental TypeScript planner from ASTRA-SEPT-6.
 
 - Full qualified named crew or wait; no borrowing across teams.
 - Precedence, releases, parts readiness, effective shift time, overtime and Sunday-night shift rules remain upstream.
@@ -78,7 +78,7 @@ The demo is bound to localhost. For an authenticated non-demo deployment, follow
 
 Run **one process / one application instance** against persistent storage. Threaded requests are serialized around the live engine state. Gunicorn rejects multiple workers, and the WSGI entrypoint holds an exclusive lock on the state directory. SQL Server, MES/Teradata synchronization, enterprise SSO, distributed workers and a live cloud Python host are not provisioned by this repository.
 
-This is a Python/Flask application. A JavaScript-only Sites Worker cannot execute its engine. No live deployment URL is claimed here.
+The ready-to-use [Render Blueprint](render.yaml) creates a password-protected Python service with a persistent disk. [Start the deployment](https://render.com/deploy?repo=https://github.com/JaredVogler2/ASTRA-FOCUS-1), provide the administrator username/password, review the paid hosting configuration, and deploy. The initial fleet is generated sample data. See [the exact hosting steps](docs/DEPLOYMENT.md#live-hosting-on-render). A live URL is issued by the host after deployment; committing source to GitHub alone does not start a server.
 
 ## Source references
 

@@ -1,0 +1,23 @@
+# VCS / caches
+.git
+.gitignore
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Generated fixtures — keep only the committed mini fixture in the image
+data/*.json.gz
+!data/mini/*.json.gz
+data/actuals.json
+
+# Dev-only files
+tests/
+requirements-dev.txt
+BUILD_LOG.md
+ARCHITECTURE.md
+manifest.yml
+Dockerfile
+.dockerignore

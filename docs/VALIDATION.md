@@ -52,5 +52,13 @@ The points gate measured flow **236,539** points, chaser **218,524**, slow-rolle
 
 - Browser visual and end-to-end UI testing were not requested and were not performed. HTTP integration, rendered HTML responses, static syntax and application-level behavior were checked.
 - Docker was unavailable in the execution environment. The container configuration was authored but not built here. The Python application itself was executed and tested.
-- No Python cloud host, enterprise SSO, live MES/Teradata/SQL Server feed, or production dataset was connected.
-- The repository owner authorized public publication of the integration code and documentation on 2026-09-07. The original FF_app engine remains a pinned private submodule; its source is not included in the public repository.
+- The Render account connection was confirmed; no live service or public application URL has been provisioned. Enterprise SSO, live MES/Teradata/SQL Server feeds and production input data are not connected.
+- The repository owner requested a self-contained repository on 2026-09-07. The FF_app executable source, tests and browser assets are now included directly in ASTRA-FOCUS-1; no private repository access is needed.
+
+## Self-contained hosting update — 2026-09-07
+
+A clean source export containing no `upstream` directory or submodule metadata passed **27 integration tests and 293 original engine tests**. The new gates exercise real account bootstrap/login, password-hash persistence across restart, HTTPS-origin checks behind a proxy, sample-data generation without demo personas, and both original dashboards with local assets and outbound HTTP disabled during the test.
+
+A separate fresh Python virtual environment installed the pinned runtime packages with no broken requirements. Gunicorn started the clean export, initialized its administrator/state files, returned HTTP 200 from `/readyz`, and served the password-only sign-in page. The Render Blueprint passed validation against Render's published JSON schema. These checks do not claim that the cloud service itself has been deployed.
+
+The clean export also passed the original generate/schedule/export/V1–V9 gates, the points gate, and all six benchmark scenarios. Each scenario reported zero constraint violations.

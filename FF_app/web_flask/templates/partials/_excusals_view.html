@@ -1,0 +1,179 @@
+<!-- Excusals View (NEW — lead capture writing through the /api/ff bridge to FF_app POST /api/v1/excusals; additive only) -->
+<div id="excusals-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Excusals</h2>
+        <p class="view-description">
+            Blocked / unscheduled work for one team with its
+            <b>auto-attributed disruption cause</b> (FF_app's deterministic
+            attribution), plus the lead capture form. Manual captures
+            <b>extend</b> auto attribution — they never overwrite it — and
+            excusable causes leave the team's goal denominator visibly
+            (GG-3). Notes are <b>required</b> for the self-owned causes
+            (SAME_TEAM_PREDECESSOR, DURATION_OVERRUN) — enforced here and
+            again by the FF backend. Task state is never mutated from this
+            tab (OR-6: actuals go through the FF actuals endpoint only).
+        </p>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:end; margin-bottom:16px; flex-wrap:wrap;">
+        <div><label style="font-size:11px; color:#777; display:block;">Team</label>
+            <select id="exTeam" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></select></div>
+        <button id="exLoad" style="padding:7px 16px; border:none; border-radius:6px; background:#1976d2; color:#fff; cursor:pointer;">Load</button>
+        <div id="exStatus" style="font-size:12px; color:#777; margin-left:8px;"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 420px; gap:20px; align-items:start;">
+        <div>
+            <h3 style="margin-bottom:8px;">Merged excusal records (auto + manual)</h3>
+            <div style="max-height:520px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead style="position:sticky; top:0; background:#f5f5f5;">
+                        <tr>
+                            <th style="text-align:left; padding:8px;">Task</th>
+                            <th style="text-align:center; padding:8px;">Slot</th>
+                            <th style="text-align:left; padding:8px;">Cause</th>
+                            <th style="text-align:center; padding:8px;">Excusable</th>
+                            <th style="text-align:left; padding:8px;">Evidence</th>
+                            <th style="text-align:center; padding:8px;">Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="exBody"></tbody>
+                </table>
+            </div>
+            <p id="exNote" style="font-size:11px; color:#999; margin-top:6px;"></p>
+        </div>
+        <div>
+            <h3 style="margin-bottom:8px;">Capture an excusal (lead attestation)</h3>
+            <div style="border:1px solid #e0e0e0; border-radius:8px; background:#fff; padding:14px; display:flex; flex-direction:column; gap:10px;">
+                <div>
+                    <label style="font-size:11px; color:#777; display:block;">FF task id (pick a listed task or type one)</label>
+                    <input id="exTaskId" list="exTaskList" placeholder="e.g. 0001-T00042"
+                           style="width:100%; padding:6px 10px; border:1px solid #ccc; border-radius:6px; font-family:monospace; box-sizing:border-box;">
+                    <datalist id="exTaskList"></datalist>
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#777; display:block;">Cause (verbatim FF_app ids; + = excusable)</label>
+                    <select id="exCause" style="width:100%; padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+                        <option value="LATE_PART">LATE_PART (+)</option>
+                        <option value="CROSS_TEAM_PREDECESSOR">CROSS_TEAM_PREDECESSOR (+)</option>
+                        <option value="SAME_TEAM_PREDECESSOR">SAME_TEAM_PREDECESSOR (— notes required)</option>
+                        <option value="CAPACITY_SHORTAGE">CAPACITY_SHORTAGE (+)</option>
+                        <option value="SKILL_SHORTAGE">SKILL_SHORTAGE (+)</option>
+                        <option value="DURATION_OVERRUN">DURATION_OVERRUN (— notes required)</option>
+                        <option value="REWORK_INJECTION">REWORK_INJECTION (+)</option>
+                        <option value="PLAN_CHURN">PLAN_CHURN (—)</option>
+                    </select>
+                </div>
+                <div>
+                    <label id="exNotesLabel" style="font-size:11px; color:#777; display:block;">Notes</label>
+                    <textarea id="exNotes" rows="3" placeholder="what happened / evidence"
+                              style="width:100%; padding:6px 10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;"></textarea>
+                </div>
+                <button id="exSubmit" style="padding:8px 16px; border:none; border-radius:6px; background:#e65100; color:#fff; cursor:pointer; font-weight:600;">Capture excusal</button>
+                <div id="exResult" style="font-size:12px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    // Verbatim FF_app rule (ff/services/disruption.py NOTES_REQUIRED):
+    // self-owned causes must carry an explanation. Enforced client-side
+    // here AND server-side by FF (its 400 passes through the bridge).
+    const NOTES_REQUIRED = ['SAME_TEAM_PREDECESSOR', 'DURATION_OVERRUN'];
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+        c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    function fail(msg) {
+        document.getElementById('exStatus').innerHTML =
+            '<span style="color:#c62828;">' + esc(msg) + '</span>';
+    }
+
+    function renderRows(d) {
+        const rows = d.excusals || [];
+        document.getElementById('exBody').innerHTML = rows.map(r =>
+            '<tr style="border-top:1px solid #eee;">' +
+            '<td style="padding:6px 8px; font-family:monospace;">' + esc(r.task_id) + '</td>' +
+            '<td style="padding:6px 8px; text-align:center;">d' + esc(r.day) +
+            (r.shift ? '/S' + esc(r.shift) : '') + '</td>' +
+            '<td style="padding:6px 8px; font-weight:600;">' + esc(r.cause) + '</td>' +
+            '<td style="padding:6px 8px; text-align:center;">' +
+            (r.excusable ? '<span style="color:#2e7d32;">yes</span>' : '<span style="color:#c62828;">no</span>') + '</td>' +
+            '<td style="padding:6px 8px; color:#777;">' + esc(r.evidence) + '</td>' +
+            '<td style="padding:6px 8px; text-align:center; font-size:11px; color:' +
+            (r.source === 'manual' ? '#e65100' : '#999') + ';">' + esc(r.source) + '</td></tr>').join('') ||
+            '<tr><td colspan="6" style="padding:12px; color:#2e7d32;">No blocked/unscheduled/disrupted work attributed to this team.</td></tr>';
+        document.getElementById('exNote').textContent =
+            rows.length + ' record(s) · manual captures extend auto attribution, duplicates collapse to auto.';
+        const ids = [...new Set(rows.map(r => r.task_id))];
+        document.getElementById('exTaskList').innerHTML =
+            ids.map(t => '<option value="' + esc(t) + '">').join('');
+    }
+
+    function load() {
+        const team = document.getElementById('exTeam').value;
+        document.getElementById('exStatus').textContent = 'loading…';
+        fetch('/api/ff/excusals?team=' + encodeURIComponent(team))
+            .then(r => r.json().then(d => ({ok: r.ok, d})))
+            .then(res => {
+                if (!res.ok) return fail(res.d.error || 'excusals failed');
+                document.getElementById('exStatus').textContent = '';
+                renderRows(res.d);
+            }).catch(e => fail('FF backend unreachable: ' + e));
+    }
+
+    function submit() {
+        const task_id = document.getElementById('exTaskId').value.trim();
+        const cause = document.getElementById('exCause').value;
+        const notes = document.getElementById('exNotes').value.trim();
+        const result = document.getElementById('exResult');
+        if (!task_id) {
+            result.innerHTML = '<span style="color:#c62828;">Task id is required.</span>';
+            return;
+        }
+        if (NOTES_REQUIRED.indexOf(cause) >= 0 && !notes) {
+            result.innerHTML = '<span style="color:#c62828;">Cause ' + esc(cause) +
+                ' requires notes (self-owned causes must carry an explanation).</span>';
+            return;
+        }
+        result.textContent = 'posting…';
+        fetch('/api/ff/excusals', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({task_id: task_id, cause: cause, notes: notes}),
+        }).then(r => r.json().then(d => ({status: r.status, ok: r.ok, d})))
+          .then(res => {
+              if (!res.ok) {
+                  result.innerHTML = '<span style="color:#c62828;">FF rejected (' + res.status + '): ' +
+                      esc(res.d.error || JSON.stringify(res.d)) + '</span>';
+                  return;
+              }
+              result.innerHTML = '<span style="color:#2e7d32;">Captured (manual #' +
+                  esc(res.d.manual_count) + ') — persisted to ' + esc(res.d.persisted_to) + '</span>';
+              document.getElementById('exNotes').value = '';
+              load();
+          }).catch(e => {
+              result.innerHTML = '<span style="color:#c62828;">FF backend unreachable: ' + esc(e) + '</span>';
+          });
+    }
+
+    function causeChanged() {
+        const cause = document.getElementById('exCause').value;
+        document.getElementById('exNotesLabel').textContent =
+            NOTES_REQUIRED.indexOf(cause) >= 0 ? 'Notes (REQUIRED for this cause)' : 'Notes (optional)';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/shiftbook/options').then(r => r.json()).then(o => {
+            document.getElementById('exTeam').innerHTML =
+                (o.teams || []).map(t => '<option>' + esc(t) + '</option>').join('');
+            load();
+        }).catch(e => fail('options failed: ' + e));
+        document.getElementById('exLoad').addEventListener('click', load);
+        document.getElementById('exSubmit').addEventListener('click', submit);
+        document.getElementById('exCause').addEventListener('change', causeChanged);
+        causeChanged();
+    });
+})();
+</script>

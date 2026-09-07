@@ -1,0 +1,16 @@
+# FF_app — TAS / cf push manifest (Tanzu Application Service)
+# Health: HTTP liveness on /healthz; readiness surface is /readyz.
+applications:
+  - name: ff-app
+    memory: 512M
+    instances: 1
+    buildpacks:
+      - python_buildpack
+    command: gunicorn -b 0.0.0.0:$PORT 'ff.web.app:create_app()'
+    health-check-type: http
+    health-check-http-endpoint: /healthz
+    env:
+      FF_ENV: prod
+      # FF_SECRET_KEY is REQUIRED in prod — set it out-of-band:
+      #   cf set-env ff-app FF_SECRET_KEY <value>
+      # Optional: FF_DATA (fleet fixture path), FF_SCHEDULE (precomputed schedule)

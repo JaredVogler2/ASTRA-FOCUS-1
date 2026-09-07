@@ -1,0 +1,109 @@
+<!-- Shift Book View (NEW — team-lead tab; additive only) -->
+<div id="shift-book-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Shift Book</h2>
+        <p class="view-description">
+            One team, one shift: the stable book your crew runs. The next
+            3 days are defended by the commitment layer — tasks stay put
+            unless something real forces a move. Rows flag in-progress
+            carryover, parts blocks, and critical-path work.
+        </p>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:end; margin-bottom:16px; flex-wrap:wrap;">
+        <div><label style="font-size:11px; color:#777; display:block;">Team</label>
+            <select id="sbTeam" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></select></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Day offset</label>
+            <select id="sbDay" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></select></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Shift</label>
+            <select id="sbShift" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+                <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option>
+            </select></div>
+        <button id="sbLoad" style="padding:7px 16px; border:none; border-radius:6px; background:#1976d2; color:#fff; cursor:pointer;">Load</button>
+        <div id="sbCounts" style="font-size:12px; color:#777; margin-left:8px;"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; align-items:start;">
+        <div style="max-height:560px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead style="position:sticky; top:0; background:#f5f5f5;">
+                    <tr>
+                        <th style="text-align:left; padding:8px;">Start</th>
+                        <th style="text-align:left; padding:8px;">Task</th>
+                        <th style="text-align:left; padding:8px;">A/C</th>
+                        <th style="text-align:left; padding:8px;">Skill</th>
+                        <th style="text-align:left; padding:8px;">Crew</th>
+                        <th style="text-align:left; padding:8px;">Flags</th>
+                    </tr>
+                </thead>
+                <tbody id="sbBody"></tbody>
+            </table>
+        </div>
+        <div>
+            <h3 style="margin-bottom:8px;">Crew loading</h3>
+            <div id="sbMechs" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function hhmm(iso) {
+        if (!iso) return '—';
+        const m = String(iso).match(/T(\d\d:\d\d)/);
+        return m ? m[1] : iso;
+    }
+
+    function flags(r) {
+        const f = [];
+        if (r.state === 'in_progress') f.push('<span style="color:#e65100;">carryover</span>');
+        if (r.state === 'blocked') f.push('<span style="color:#c62828;">parts</span>');
+        if (r.isCritical) f.push('<span style="color:#6a1b9a;">critical</span>');
+        if (r.isInspection) f.push('<span style="color:#1565c0;">inspection</span>');
+        return f.join(' ');
+    }
+
+    function render(d) {
+        document.getElementById('sbCounts').textContent =
+            d.counts.total + ' tasks — ' + d.counts.critical + ' critical, ' +
+            d.counts.inProgress + ' carryover, ' + d.counts.blocked + ' blocked';
+        document.getElementById('sbBody').innerHTML = d.tasks.map(r =>
+            '<tr style="border-top:1px solid #eee;' +
+            (r.isCritical ? ' background:#f7f2fb;' : '') + '">' +
+            '<td style="padding:6px 8px; white-space:nowrap;">' + hhmm(r.startTime) + '–' + hhmm(r.endTime) + '</td>' +
+            '<td style="padding:6px 8px; font-family:monospace; font-size:12px;">' + r.taskId + '</td>' +
+            '<td style="padding:6px 8px;">' + r.line + '</td>' +
+            '<td style="padding:6px 8px;">' + (r.skill || '—') + '</td>' +
+            '<td style="padding:6px 8px; font-size:12px;">' + (r.mechanicIds.join(', ') || '<span style="color:#c62828;">unassigned</span>') + '</td>' +
+            '<td style="padding:6px 8px; font-size:11px;">' + flags(r) + '</td></tr>').join('') ||
+            '<tr><td colspan="6" style="padding:14px; color:#777;">No tasks for this team/day/shift.</td></tr>';
+        document.getElementById('sbMechs').innerHTML = d.mechanics.map(m =>
+            '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px 10px; font-size:12px; background:#fff; display:flex; justify-content:space-between;">' +
+            '<b>' + m.bems + '</b><span>' + m.count + ' task' + (m.count !== 1 ? 's' : '') + '</span></div>').join('') ||
+            '<div style="color:#777; font-size:12px;">no crew loaded</div>';
+    }
+
+    function load() {
+        const q = new URLSearchParams({
+            team: document.getElementById('sbTeam').value,
+            day: document.getElementById('sbDay').value,
+            shift: document.getElementById('sbShift').value,
+        });
+        fetch('/api/shiftbook?' + q).then(r => r.json()).then(render);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/shiftbook/options').then(r => r.json()).then(o => {
+            document.getElementById('sbTeam').innerHTML =
+                o.teams.map(t => '<option>' + t + '</option>').join('');
+            const daySel = document.getElementById('sbDay');
+            daySel.innerHTML = [0, 1, 2, 3, 4].map(k =>
+                '<option value="' + (o.todayDay + k) + '">' +
+                (k === 0 ? 'Today' : '+' + k + 'd') + '</option>').join('');
+            document.getElementById('sbShift').value = String(o.currentShift);
+            load();
+        });
+        document.getElementById('sbLoad') && document.getElementById('sbLoad').addEventListener('click', load);
+    });
+})();
+</script>

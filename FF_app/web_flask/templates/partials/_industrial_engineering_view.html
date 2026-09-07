@@ -1,0 +1,79 @@
+<!-- templates/partials/_industrial_engineering_view.html -->
+<div id="industrial-engineering-view" class="view-content" style="display: none;">
+    <div class="header">
+        <h2>Industrial Engineering Review Queue</h2>
+        <p>Tasks flagged by mechanics as being held by a predecessor task.</p>
+    </div>
+
+    <!-- Predecessor Blocking Analysis Panel (NEW) -->
+    <div class="blocking-analysis-panel" style="margin-bottom: 25px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 18px; color: #1F2937;">🔗 Predecessor Blocking Analysis</h3>
+            <button id="refreshBlockingAnalysis" onclick="loadBlockingAnalysis()" style="padding: 8px 16px; background: #0033A0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                Refresh Analysis
+            </button>
+        </div>
+        <p style="font-size: 13px; color: #6B7280; margin-bottom: 15px;">Tasks most frequently blocking downstream work - prioritize resolving these for maximum schedule impact.</p>
+
+        <!-- Summary Stats -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;">
+            <div style="background: #F3F4F6; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 11px; color: #6B7280;">Total Blockers</div>
+                <div id="totalBlockers" style="font-size: 24px; font-weight: 700; color: #DC2626;">0</div>
+            </div>
+            <div style="background: #F3F4F6; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 11px; color: #6B7280;">Tasks Affected</div>
+                <div id="tasksAffected" style="font-size: 24px; font-weight: 700; color: #B45309;">0</div>
+            </div>
+            <div style="background: #F3F4F6; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 11px; color: #6B7280;">Top Team</div>
+                <div id="topBlockingTeam" style="font-size: 14px; font-weight: 700; color: #0033A0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+            </div>
+        </div>
+
+        <!-- Top Blocking Tasks Table -->
+        <div style="overflow-x: auto;">
+            <table id="blockingTasksTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: #F8FAFC; border-bottom: 2px solid #E2E8F0;">
+                        <th style="padding: 10px; text-align: left; font-weight: 600; color: #475569;">Rank</th>
+                        <th style="padding: 10px; text-align: left; font-weight: 600; color: #475569;">Blocking Task</th>
+                        <th style="padding: 10px; text-align: left; font-weight: 600; color: #475569;">Team</th>
+                        <th style="padding: 10px; text-align: center; font-weight: 600; color: #475569;">Times Blocking</th>
+                        <th style="padding: 10px; text-align: center; font-weight: 600; color: #475569;">Impact Score</th>
+                        <th style="padding: 10px; text-align: center; font-weight: 600; color: #475569;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="blockingTasksBody">
+                    <tr>
+                        <td colspan="6" style="padding: 30px; text-align: center; color: #9CA3AF;">
+                            <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+                            Loading blocking analysis data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="ie-review-table">
+            <thead>
+                <tr>
+                    <th>Priority</th>
+                    <th>Task ID</th>
+                    <th>Product</th>
+                    <th>Team</th>
+                    <th>Submitted By</th>
+                    <th>Flagged At (UTC)</th>
+                    <th>Predecessor(s) & Notes</th>
+                    <th>General Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="ie-review-table-body">
+                <!-- Data will be loaded here by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,163 @@
+<!-- Team Lead View -->
+<div id="team-lead-view" class="view-content active">
+    <div class="team-filters">
+        <div class="filter-group">
+            <label>Superintendent:</label>
+            <select id="superintendentSelect">
+                <option value="all">All Superintendents</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Team (Ctrl+Click for multiple):</label>
+            <select id="teamSelect" multiple size="4" style="min-height: 100px;">
+                <option value="all" selected>All Teams</option>
+                <option value="all-mechanics">All Mechanic Teams</option>
+                <option value="all-quality">All Quality Teams</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Skill:</label>
+            <select id="skillSelect">
+                <option value="all">All Skills</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Shift:</label>
+            <select id="shiftSelect">
+                <option value="all">All Shifts</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Aircraft:</label>
+            <select id="productSelect">
+                <option value="all">All Aircraft</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Search Job/Task:</label>
+            <div style="display: flex; gap: 8px; align-items: center; position: relative;">
+                <div style="flex: 1; position: relative;">
+                    <input type="text" id="jobSearchInput" placeholder="Enter task ID or SOI..."
+                           autocomplete="off"
+                           style="width: 100%; padding: 6px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;">
+                    <!-- Autocomplete dropdown -->
+                    <div id="searchSuggestions" class="search-suggestions" style="display: none;
+                        position: absolute;
+                        top: 100%;
+                        left: 0;
+                        right: 0;
+                        background: white;
+                        border: 1px solid #ccc;
+                        border-top: none;
+                        border-radius: 0 0 4px 4px;
+                        max-height: 200px;
+                        overflow-y: auto;
+                        z-index: 1000;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    </div>
+                </div>
+                <button id="clearSearchBtn" onclick="clearJobSearch()"
+                        style="padding: 6px 12px; font-size: 14px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">
+                    ✕ Clear
+                </button>
+            </div>
+            <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
+                Search by task ID, SOI, or keywords (e.g., "24-0001", "INSP_QA")
+            </small>
+        </div>
+    </div>
+
+    <div class="team-stats">
+        <div class="stat-card">
+            <h3>Team Capacity</h3>
+            <div class="value" id="teamCapacity">0</div>
+            <div class="subtext">mechanics available</div>
+        </div>
+        <div class="stat-card">
+            <h3>Tasks Today</h3>
+            <div class="value" id="tasksToday">0</div>
+            <div class="subtext">to be completed</div>
+        </div>
+        <div class="stat-card">
+            <h3>Utilization</h3>
+            <div class="value" id="teamUtilization">0%</div>
+            <div class="subtext">current shift</div>
+        </div>
+        <div class="stat-card">
+            <h3>Critical Tasks</h3>
+            <div class="value" id="criticalTasks">0</div>
+            <div class="subtext">high priority</div>
+        </div>
+    </div>
+
+    <!-- Task Table -->
+    <div class="task-table-container">
+        <div class="table-header">
+            <h3>Task Priority List</h3>
+            <div class="table-actions">
+                <button class="btn btn-primary" onclick="autoAssign()">Smart Auto-Assign</button>
+                <button class="btn btn-secondary" onclick="saveAssignmentsToStorage()">Save</button>
+                <button class="btn btn-secondary" onclick="loadAssignmentsFromStorage()">Load</button>
+                <button class="btn btn-secondary" onclick="exportTasks()">Export</button>
+            </div>
+        </div>
+        <table id="taskTable">
+            <thead>
+                <tr>
+                    <th width="60">Priority</th>
+                    <th width="60">Line #</th>
+                    <th width="120">Task ID</th>
+                    <th width="100">Type</th>
+                    <th width="100">Team</th>
+                    <th width="80">Super</th>
+                    <th width="140">Start Date & Time</th>
+                    <th width="80">Duration</th>
+                    <th width="80" style="text-align: center;">Resources<br>Needed</th>
+                    <th width="200">Assignment</th>
+                </tr>
+            </thead>
+            <tbody id="taskTableBody">
+                <!-- Tasks will be populated here by JavaScript -->
+            </tbody>
+        </table>
+
+        <!-- Pagination Controls (for 3-stage scenario) -->
+        <div id="paginationControls" class="pagination-controls" style="display: none; margin-top: 15px; text-align: center;">
+            <div class="pagination-info" style="margin-bottom: 10px; color: #666;">
+                <span id="paginationInfo">Showing 0 of 0 tasks</span>
+            </div>
+            <div class="pagination-buttons">
+                <button id="loadMoreBtn" class="btn btn-primary" onclick="loadMoreTasks()" style="margin-right: 10px;">
+                    Load Next 500 Tasks
+                </button>
+                <button id="showAllBtn" class="btn btn-secondary" onclick="loadAllTasks()">
+                    Show All Tasks
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Summary Panel -->
+    <div id="assignmentSummary" class="assignment-summary">
+        <h4>Assignment Status</h4>
+        <div class="stat-row">
+            <span class="stat-label">Total Tasks:</span>
+            <span class="stat-value" id="summaryTotal">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Fully Assigned:</span>
+            <span class="stat-value" id="summaryComplete">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Partially Assigned:</span>
+            <span class="stat-value" id="summaryPartial">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Unassigned:</span>
+            <span class="stat-value" id="summaryUnassigned">0</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="summaryProgress" style="width: 0%"></div>
+        </div>
+    </div>
+</div>

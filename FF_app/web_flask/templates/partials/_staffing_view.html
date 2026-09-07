@@ -1,0 +1,148 @@
+<!-- Staffing Dashboard View -->
+<div id="staffing-view" class="view-content">
+    <div class="staffing-header">
+        <h2>Staffing Dashboard - Peak Demand & Utilization Analysis</h2>
+        <p class="view-description">Analyze peak headcount demand and utilization across teams, shifts, and roles</p>
+    </div>
+
+    <!-- Multi-Select Filters -->
+    <div class="staffing-filters" style="margin-bottom: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <!-- Superintendent Filter -->
+            <div class="filter-group">
+                <label for="superFilter" style="font-weight: 600; display: block; margin-bottom: 5px;">Superintendent (SUPER)</label>
+                <select id="superFilter" multiple style="width: 100%; height: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="ALL" selected>All Superintendents</option>
+                </select>
+            </div>
+
+            <!-- Shift Filter -->
+            <div class="filter-group">
+                <label for="shiftFilter" style="font-weight: 600; display: block; margin-bottom: 5px;">Shift</label>
+                <select id="shiftFilter" multiple style="width: 100%; height: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="ALL" selected>All Shifts</option>
+                    <option value="1">Shift 1</option>
+                    <option value="2">Shift 2</option>
+                    <option value="3">Shift 3</option>
+                </select>
+            </div>
+
+            <!-- Team Filter -->
+            <div class="filter-group">
+                <label for="teamFilter" style="font-weight: 600; display: block; margin-bottom: 5px;">Team</label>
+                <select id="teamFilter" multiple style="width: 100%; height: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="ALL" selected>All Teams</option>
+                </select>
+            </div>
+
+            <!-- Role Filter -->
+            <div class="filter-group">
+                <label for="roleFilter" style="font-weight: 600; display: block; margin-bottom: 5px;">Role</label>
+                <select id="roleFilter" multiple style="width: 100%; height: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="ALL" selected>All Roles</option>
+                    <option value="mechanic">Mechanic</option>
+                    <option value="quality">Quality</option>
+                    <option value="customer">Customer</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Filter Actions -->
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button id="applyFiltersBtn" class="btn-primary" style="padding: 10px 20px; background: #003581; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                Apply Filters
+            </button>
+            <button id="clearFiltersBtn" class="btn-secondary" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                Clear All
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div class="summary-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Avg Peak Demand</div>
+            <div id="avgPeakDemand" style="font-size: 2rem; font-weight: 700; color: #003581;">-</div>
+            <div style="font-size: 0.8rem; color: #999;">mechanics/day</div>
+        </div>
+        <div class="summary-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Max Peak Demand</div>
+            <div id="maxPeakDemand" style="font-size: 2rem; font-weight: 700; color: #dc3545;">-</div>
+            <div style="font-size: 0.8rem; color: #999;">mechanics</div>
+        </div>
+        <div class="summary-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Avg Utilization</div>
+            <div id="staffingAvgUtilization" style="font-size: 2rem; font-weight: 700; color: #28a745;">-</div>
+            <div style="font-size: 0.8rem; color: #999;">%</div>
+        </div>
+        <div class="summary-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Total Work Hours</div>
+            <div id="totalWorkHours" style="font-size: 2rem; font-weight: 700; color: #17a2b8;">-</div>
+            <div style="font-size: 0.8rem; color: #999;">hours</div>
+        </div>
+    </div>
+
+    <!-- Utilization Alert Panel (NEW) -->
+    <div id="utilizationAlertPanel" class="utilization-alerts" style="display: none; margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #FEF3C7, #FDE68A); border-radius: 8px; border: 2px solid #F59E0B;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <span style="font-size: 24px;">⚠️</span>
+            <div>
+                <div style="font-weight: 700; color: #92400E; font-size: 16px;">High Utilization Alert</div>
+                <div style="font-size: 13px; color: #B45309;">Teams approaching or exceeding capacity (>90% utilization)</div>
+            </div>
+        </div>
+        <div id="overloadedTeamsList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+            <!-- Overloaded teams will be populated here -->
+        </div>
+    </div>
+
+    <!-- Peak Demand Stacked Bar Chart -->
+    <div class="chart-container" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+        <h3 style="margin-bottom: 15px; color: #333;">Peak Demand Headcount per Day (Stacked by Team)</h3>
+        <canvas id="peakDemandChart" style="max-height: 400px;"></canvas>
+    </div>
+
+    <!-- Utilization Line Chart -->
+    <div class="chart-container" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+        <h3 style="margin-bottom: 15px; color: #333;">Utilization per Day</h3>
+        <canvas id="utilizationChart" style="max-height: 400px;"></canvas>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-container" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+        <h3 style="margin-bottom: 15px; color: #333;">Daily Breakdown</h3>
+        <div style="overflow-x: auto;">
+            <table id="staffingDataTable" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                        <th style="padding: 12px; text-align: left; font-weight: 600;">Day</th>
+                        <th style="padding: 12px; text-align: right; font-weight: 600;">Peak Demand</th>
+                        <th style="padding: 12px; text-align: right; font-weight: 600;">Work Minutes</th>
+                        <th style="padding: 12px; text-align: right; font-weight: 600;">Capacity Minutes</th>
+                        <th style="padding: 12px; text-align: right; font-weight: 600;">Utilization %</th>
+                    </tr>
+                </thead>
+                <tbody id="staffingTableBody">
+                    <tr>
+                        <td colspan="5" style="padding: 20px; text-align: center; color: #999;">
+                            Click "Apply Filters" to load data
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="staffingLoadingState" style="display: none; text-align: center; padding: 40px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #003581; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+        <p style="color: #666;">Loading staffing data...</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</div>

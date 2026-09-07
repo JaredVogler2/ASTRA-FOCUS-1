@@ -1,16 +1,16 @@
-# Run this private source package
+# Start from the GitHub source ZIP
 
-This archive contains the new ASTRA application plus the FF_app runtime, tests and synthetic mini fixture from the pinned private upstream source. The included engine files are sufficient to run this package without cloning the private dependency again.
+The current ASTRA-FOCUS-1 source ZIP includes the FF_app engine, original FOCUS Flask dashboards, bundled browser libraries, ASTRA workspaces, tests and synthetic mini fixture. No private repository or submodule is required.
 
-**Keep the complete source archive private.** It includes the original private FF_app engine. The repository owner authorized public publication of the integration code and documentation on 2026-09-07; the engine remains a pinned private dependency in the public repository.
-
-From the extracted `ASTRA-FOCUS-1` directory, either run:
+Extract the archive, open a terminal in its top-level directory and run:
 
 ```bash
 docker compose up --build
 ```
 
-Or use Python 3.12 on Linux/macOS:
+Open `http://localhost:8080`. This starts a labeled synthetic demonstration and retains state in the Compose volume.
+
+Without Docker, use Python 3.12 on Linux/macOS:
 
 ```bash
 python -m venv .venv
@@ -19,15 +19,6 @@ python -m pip install -r requirements.txt
 ASTRA_DEMO=1 gunicorn -c gunicorn.conf.py wsgi:app
 ```
 
-Open `http://localhost:8080`. This starts the explicitly labeled synthetic demonstration. The default 50-aircraft dataset is generated on first launch and state is retained in `var/` (or the Compose volume).
+For password-protected live hosting, follow [the deployment guide](docs/DEPLOYMENT.md). The included `render.yaml` automates the service configuration. Python packages are installed during the build; all application and browser source is in this repository.
 
-To verify the source:
-
-```bash
-python -m pip install -r requirements-dev.txt
-python scripts/verify.py
-```
-
-The archive omits upstream Git history, unrelated planning corpora, generated runtime state, credentials, and the large upstream dashboard booklet/unused animated landing-page background. It retains the FF_app executable source, original tests, benchmark definitions, preserved dashboard source and required static assets. Exact private provenance is recorded in `sources.lock.json`. The included synthetic mini fixture comes from the original deterministic generator.
-
-For a GitHub checkout, `upstream` is represented by a pinned private submodule. GitHub's automatic source ZIP does not include that private dependency. See `README.md` and `docs/DEPLOYMENT.md` for the repository and hosting workflows.
+Original reference revisions and local adaptations are documented in `sources.lock.json` and `THIRD_PARTY/README.md`. Generated state, credentials, unrelated reference-repository material and old Git history are intentionally absent from the source archive.

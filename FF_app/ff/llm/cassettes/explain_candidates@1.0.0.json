@@ -1,0 +1,28 @@
+{
+ "cassettes": [
+  {
+   "input_hash": "50bb83d7a269fb0e57a9ac8aec9038f4bca534aab6bffaa5437e6e5302f4b512",
+   "model": "recorded",
+   "recorded_at": "recorded",
+   "response": {
+    "candidate_notes": [
+     {
+      "candidate_id": "0001-T00001",
+      "note": "rank 1 with score 120"
+     },
+     {
+      "candidate_id": "0001-T00002",
+      "note": "rank 2 with score 80"
+     }
+    ],
+    "confidence": 0.9,
+    "data_basis": "supplied ranked candidate metrics only (synthetic mock data)",
+    "summary": "2 ready candidates supplied for team T01. Top-ranked candidate 0001-T00001 carries score 120 at rank 1."
+   },
+   "template_id": "explain_candidates",
+   "template_version": "1.0.0"
+  }
+ ],
+ "mock_data": true,
+ "schema": 1
+}

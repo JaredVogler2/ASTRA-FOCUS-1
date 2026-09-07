@@ -1,0 +1,163 @@
+<!-- Arena View (NEW — FF_app points/leaderboard tab via the /api/ff bridge; additive only, read-only GG-1) -->
+<div id="arena-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Arena</h2>
+        <p class="view-description">
+            The FF_app point engine, live from the backend: one team's shift
+            score (goal = point value of the planned slice, earned = value of
+            work actually done) and the fleet leaderboard. Ranking is by
+            <b>attainment + efficiency — never raw points</b> (GG-2), so a
+            small team that hits its plan outranks a big team that doesn't.
+            Excused work (the 5 excusable causes) leaves the goal
+            <b>visibly</b>, never silently. SYNTHETIC mock data.
+        </p>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:end; margin-bottom:16px; flex-wrap:wrap;">
+        <div><label style="font-size:11px; color:#777; display:block;">Team</label>
+            <select id="arTeam" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></select></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Day</label>
+            <input id="arDay" type="number" min="0" value="0" style="width:70px; padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Shift</label>
+            <select id="arShift" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+                <option value="1">S1</option><option value="2">S2</option><option value="3">S3</option>
+            </select></div>
+        <button id="arLoad" style="padding:7px 16px; border:none; border-radius:6px; background:#1976d2; color:#fff; cursor:pointer;">Load</button>
+        <div id="arStatus" style="font-size:12px; color:#777; margin-left:8px;"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 380px 1fr; gap:20px; align-items:start;">
+        <div>
+            <h3 style="margin-bottom:8px;">Shift score</h3>
+            <div id="arRingCard" style="border:1px solid #e0e0e0; border-radius:8px; background:#fff; padding:14px; display:flex; gap:16px; align-items:center;">
+                <svg id="arRing" width="120" height="120" viewBox="0 0 120 120"></svg>
+                <div id="arRingStats" style="font-size:13px;"></div>
+            </div>
+            <h3 style="margin:14px 0 8px;">Excused from the goal (visible, never silent)</h3>
+            <div id="arExcused" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+        <div>
+            <h3 style="margin-bottom:8px;">Leaderboard — execution quality, not headcount</h3>
+            <div style="max-height:520px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead style="position:sticky; top:0; background:#f5f5f5;">
+                        <tr>
+                            <th style="text-align:right; padding:8px;">#</th>
+                            <th style="text-align:left; padding:8px;">Team</th>
+                            <th style="text-align:right; padding:8px;">Attainment</th>
+                            <th style="text-align:right; padding:8px;">Efficiency</th>
+                            <th style="text-align:right; padding:8px;">Difficulty</th>
+                            <th style="text-align:left; padding:8px;">Context</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arLbBody"></tbody>
+                </table>
+            </div>
+            <p style="font-size:11px; color:#999; margin-top:6px;">
+                Raw goal/earned point totals never appear in leaderboard rows
+                (GG-2). "Needs support" rows carry their absorbed excusal
+                causes — help framing, not blame (PSY-5).
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+        c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const pct = v => v == null ? '—' : (100 * v).toFixed(1) + '%';
+
+    function fail(msg) {
+        document.getElementById('arStatus').innerHTML =
+            '<span style="color:#c62828;">' + esc(msg) + '</span>';
+    }
+
+    function ring(attainment) {
+        const a = Math.max(0, Math.min(1.5, attainment || 0));
+        const r = 48, c = 2 * Math.PI * r;
+        const frac = Math.min(1, a);
+        const color = a >= 1 ? '#2e7d32' : a >= 0.5 ? '#e65100' : '#c62828';
+        document.getElementById('arRing').innerHTML =
+            '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="#eee" stroke-width="12"/>' +
+            '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="12" stroke-linecap="round"' +
+            ' stroke-dasharray="' + (c * frac) + ' ' + c + '" transform="rotate(-90 60 60)"/>' +
+            '<text x="60" y="66" text-anchor="middle" font-size="20" font-weight="700" fill="' + color + '">' +
+            (100 * a).toFixed(0) + '%</text>';
+    }
+
+    function renderShift(d) {
+        const rep = d.report || {};
+        ring(rep.attainment);
+        document.getElementById('arRingStats').innerHTML =
+            '<div><b>' + esc(d.team) + '</b> · day ' + esc(d.day) + ' · S' + esc(d.shift) + '</div>' +
+            '<div style="margin-top:4px;">Goal <b>' + Math.round(rep.goal || 0) + '</b> pts · Earned <b>' +
+            Math.round(rep.earned || 0) + '</b> pts</div>' +
+            '<div>Attainment <b>' + pct(rep.attainment) + '</b></div>' +
+            '<div style="color:#777; font-size:11px; margin-top:4px;">difficulty ' +
+            (rep.difficulty != null ? rep.difficulty.toFixed(1) : '—') +
+            ' · value efficiency ' + (rep.value_efficiency != null ? rep.value_efficiency.toFixed(3) : '—') +
+            ' pts/crew-min</div>';
+        const ex = rep.excusals || [];
+        document.getElementById('arExcused').innerHTML =
+            (rep.excused_points ? '<div style="font-size:12px; color:#e65100;"><b>' +
+                Math.round(rep.excused_points) + ' pts</b> excused out of the goal denominator (GG-3):</div>' : '') +
+            (ex.map(e =>
+                '<div style="border:1px solid #ffe0b2; background:#fff8f0; border-radius:8px; padding:6px 10px; font-size:12px;">' +
+                '<span style="font-family:monospace;">' + esc(e.task_id) + '</span> · <b>' + esc(e.cause) + '</b>' +
+                ' <span style="color:#999;">[' + esc(e.source) + ']</span>' +
+                '<div style="color:#777;">' + esc(e.evidence) + '</div></div>').join('') ||
+             '<div style="color:#777; font-size:12px;">No excused tasks on this slice.</div>');
+    }
+
+    function renderLb(d) {
+        const rows = d.leaderboard || [];
+        document.getElementById('arLbBody').innerHTML = rows.map((r, i) =>
+            '<tr style="border-top:1px solid #eee;' + (r.needs_support ? ' background:#fff8f0;' : '') + '">' +
+            '<td style="padding:6px 8px; text-align:right; color:#999;">' + (i + 1) + '</td>' +
+            '<td style="padding:6px 8px; font-weight:600;">' + esc(r.team) + '</td>' +
+            '<td style="padding:6px 8px; text-align:right; font-weight:600; color:' +
+            (r.attainment >= 1 ? '#2e7d32' : r.attainment >= 0.5 ? '#e65100' : '#c62828') + ';">' + pct(r.attainment) + '</td>' +
+            '<td style="padding:6px 8px; text-align:right;">' + (r.efficiency != null ? r.efficiency.toFixed(3) : '—') + '</td>' +
+            '<td style="padding:6px 8px; text-align:right;">' + (r.difficulty != null ? r.difficulty.toFixed(1) : '—') + '</td>' +
+            '<td style="padding:6px 8px; font-size:11px;">' +
+            (r.needs_support && r.support
+                ? '<span style="color:#e65100; font-weight:600;">' + esc(r.support.framing) + '</span>' +
+                  ((r.support.top_causes || []).map(c => ' · ' + esc(c.cause) + ' ×' + c.count).join(''))
+                : '') +
+            '</td></tr>').join('') ||
+            '<tr><td colspan="6" style="padding:12px; color:#777;">No leaderboard rows.</td></tr>';
+    }
+
+    function load() {
+        const team = document.getElementById('arTeam').value;
+        const day = document.getElementById('arDay').value || '0';
+        const shift = document.getElementById('arShift').value;
+        document.getElementById('arStatus').textContent = 'loading…';
+        Promise.all([
+            fetch('/api/ff/points/shift?team=' + encodeURIComponent(team) +
+                  '&day=' + encodeURIComponent(day) + '&shift=' + encodeURIComponent(shift))
+                .then(r => r.json().then(d => ({ok: r.ok, d}))),
+            fetch('/api/ff/points/leaderboard?day=' + encodeURIComponent(day))
+                .then(r => r.json().then(d => ({ok: r.ok, d}))),
+        ]).then(([shiftRes, lbRes]) => {
+            if (!shiftRes.ok) return fail(shiftRes.d.error || 'shift report failed');
+            if (!lbRes.ok) return fail(lbRes.d.error || 'leaderboard failed');
+            document.getElementById('arStatus').textContent = '';
+            renderShift(shiftRes.d);
+            renderLb(lbRes.d);
+        }).catch(e => fail('FF backend unreachable: ' + e));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/shiftbook/options').then(r => r.json()).then(o => {
+            document.getElementById('arTeam').innerHTML =
+                (o.teams || []).map(t => '<option>' + esc(t) + '</option>').join('');
+            document.getElementById('arDay').value = o.todayDay || 0;
+            document.getElementById('arShift').value = String(o.currentShift || 1);
+            load();
+        }).catch(e => fail('options failed: ' + e));
+        document.getElementById('arLoad').addEventListener('click', load);
+    });
+})();
+</script>

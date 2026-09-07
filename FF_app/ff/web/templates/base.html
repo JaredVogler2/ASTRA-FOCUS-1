@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FF — FOCU5{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='ff.css') }}">
+</head>
+<body>
+  {# OR-5: ALWAYS-visible mock-data banner — synthetic label + snapshot id + freshness #}
+  <div class="mock-banner" id="mock-banner" data-built-at="{{ built_at or '' }}">
+    <span class="tag">SYNTHETIC DATA</span>
+    <span>mock_data: <strong>{{ 'true' if mock_data else 'UNLABELED' }}</strong></span>
+    <span>snapshot <code>{{ snapshot_id or '—' }}</code></span>
+    <span>built {{ built_at or '—' }} <span class="age">(<span id="snap-age">age n/a</span>)</span></span>
+    {% if validator_total is not none %}
+      <span class="{{ 'v-ok' if validator_total == 0 else 'v-bad' }}">validator: {{ validator_total }} violation(s)</span>
+    {% endif %}
+    {% if role %}
+      <span class="spacer"></span>
+      <button class="btn btn-small" id="replan-btn" type="button">Replan</button>
+      <span id="replan-msg" class="msg"></span>
+    {% endif %}
+  </div>
+
+  <header class="topbar">
+    <div class="brand">FF<span class="dot">·</span>FOCU5</div>
+    <nav class="nav">
+      {% if role %}
+        {# RS rule: the nav shows ONLY the logged-in role's own view #}
+        <a class="navlink active" href="{{ home }}">{{ role_label }}</a>
+        <span class="who">{{ role }} · {{ scope_label or scope }}</span>
+        <a class="navlink" href="/logout">Log out</a>
+      {% else %}
+        <a class="navlink" href="/login">Log in</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="wrap">
+    {% if ready or not (engine_required | default(true)) %}
+      {% block content %}{% endblock %}
+    {% else %}
+      <section class="card card-err">
+        <h2>Engine not ready</h2>
+        <p>The schedule snapshot has not been built yet — <code>/readyz</code>
+           is returning 503. Nothing is shown rather than showing stale or
+           fictional data.</p>
+        {% if boot_error %}<pre class="err-pre">{{ boot_error }}</pre>{% endif %}
+        <p><button class="btn" onclick="location.reload()">Retry</button></p>
+      </section>
+    {% endif %}
+  </main>
+
+  <footer class="foot">
+    FF_app demo — all data is <strong>SYNTHETIC</strong> (mock_data: true).
+    Dollar figures derive from <strong>placeholder</strong> config rates
+    (source: config-defaults), not negotiated terms.
+  </footer>
+
+  <script src="{{ url_for('static', filename='ff.js') }}"></script>
+</body>
+</html>

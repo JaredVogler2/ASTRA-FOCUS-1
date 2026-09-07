@@ -1,0 +1,11 @@
+{
+  "all_scheduled_or_reasoned": true,
+  "otd_range": [
+    19,
+    25
+  ],
+  "scheduled_rate_min": 0.85,
+  "total_tasks": 55529,
+  "unscheduled_max": 8000,
+  "zero_violations": true
+}

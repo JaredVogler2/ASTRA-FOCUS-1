@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOCUS</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link href="/static/css/vendor/vis-timeline-7.4.8.min.css" rel="stylesheet" type="text/css" />
+    <script src="/static/js/vendor/vis-timeline-7.4.8.min.js"></script>
+    <script src="/static/js/vendor/chart-4.4.0.umd.js"></script>
+    <script src="/static/js/vendor/xlsx-0.18.5.full.min.js"></script>
+    <style>
+        .wg-group-label {
+            font-size: 12px;
+            text-align: left;
+        }
+        .vis-item.wg-critical {
+            border: 2px solid red !important;
+            box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+        .vis-item.wg-highlight {
+            background-color: yellow !important;
+            border-color: #FFD700 !important;
+            color: black !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <div class="icon" style="background-image: url('/static/images/Negative-mask-effect_PNG.png'); background-size: cover; color: transparent;">F</div>
+                FOCUS
+            </h1>
+            <div class="controls">
+                <div class="scenario-selector">
+                    <label>Schedule:</label>
+                    <select id="scenarioSelect">
+                        <option value="3stage">Loading schedules...</option>
+                    </select>
+                </div>
+                <div class="view-tabs">
+                    <button class="view-tab active" data-view="team-lead">Team Lead</button>
+                    <button class="view-tab" data-view="staffing">Staffing</button>
+                    <button class="view-tab" data-view="management">Management</button>
+                    <button class="view-tab" data-view="mechanic">Individual</button>
+                    <button class="view-tab" data-view="shift-performance">Do What's Prioritized</button>
+                    <button class="view-tab" data-view="project">Project View</button>
+                    <button class="view-tab" data-view="worker-gantt">Worker Gantt</button>
+                    <button class="view-tab" data-view="supply-chain">Supply Chain</button>
+                    <button class="view-tab" data-view="industrial-engineering">Industrial Engineering</button>
+                    <button class="view-tab" data-view="development">Development</button>
+                    <button class="view-tab" data-view="schedule-budget">Schedule Budget</button>
+                    <button class="view-tab" data-view="todo">To Do</button>
+                    <button class="view-tab" data-view="scenario">Run Scenarios</button>
+                    <button class="view-tab" data-view="commitments">Commitments (NEW)</button>
+                    <button class="view-tab" data-view="economics">Economics (NEW)</button>
+                    <button class="view-tab" data-view="shift-book">Shift Book (NEW)</button>
+                    <button class="view-tab" data-view="my-day">My Day (NEW)</button>
+                    <button class="view-tab" data-view="capacity">Capacity (NEW)</button>
+                    <!-- VENDOR ADD (INCREMENT 6 Part C, VENDOR_CHANGES.md): FF_app insight tabs -->
+                    <button class="view-tab" data-view="arena">Arena (NEW)</button>
+                    <button class="view-tab" data-view="progression">Progression (NEW)</button>
+                    <button class="view-tab" data-view="excusals">Excusals (NEW)</button>
+                    <button class="view-tab" data-view="explain">Explain (NEW)</button>
+                    <button class="view-tab" data-view="scorecard">Scorecard (NEW)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            {% include 'partials/_todo_view.html' %}
+            {% include 'partials/_team_lead_view.html' %}
+            {% include 'partials/_staffing_view.html' %}
+            {% include 'partials/_management_view.html' %}
+            {% include 'partials/_mechanic_view.html' %}
+            {% include 'partials/_shift_performance_view.html' %}
+            {% include 'partials/_project_view.html' %}
+            {% include 'partials/_worker_gantt_view.html' %}
+            {% include 'partials/_supply_chain_view.html' %}
+            {% include 'partials/_industrial_engineering_view.html' %}
+            {% include 'partials/_development_board_view.html' %}
+            {% include 'partials/_schedule_budget_view.html' %}
+            {% include 'partials/_scenario_view.html' %}
+            {% include 'partials/_commitments_view.html' %}
+            {% include 'partials/_economics_view.html' %}
+            {% include 'partials/_shiftbook_view.html' %}
+            {% include 'partials/_myday_view.html' %}
+            {% include 'partials/_capacity_view.html' %}
+            <!-- VENDOR ADD (INCREMENT 6 Part C, VENDOR_CHANGES.md): FF_app insight tabs -->
+            {% include 'partials/_arena_view.html' %}
+            {% include 'partials/_progression_view.html' %}
+            {% include 'partials/_excusals_view.html' %}
+            {% include 'partials/_explain_view.html' %}
+            {% include 'partials/_scorecard_view.html' %}
+        </div>
+    </div>
+
+    <!-- Load the corrected JavaScript file from static folder -->
+    <script src="{{ url_for('static', filename='js/dashboard-js.js', v='2.0') }}"></script>
+    <script src="{{ url_for('static', filename='js/schedule-budget.js', v='1.0') }}"></script>
+    <script src="{{ url_for('static', filename='js/staffing-dashboard.js', v='1.0') }}"></script>
+
+    <!-- Task Chain Modal -->
+    <div id="task-chain-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dependency Chain for Task: <span id="modal-task-id"></span></h2>
+                <span class="chain-modal-close">&times;</span>
+            </div>
+            <div id="task-chain-content" class="modal-body">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>

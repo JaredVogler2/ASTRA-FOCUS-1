@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Analytics — FF FOCU5{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Analytics <span class="muted">— fleet economics &amp; OTD</span></h1>
+
+  <div class="banner-inline">
+    PLACEHOLDER ECONOMICS (OR-5): rates come from config defaults
+    (source: <code>{{ econ.source }}</code>,
+    ${{ '{:,}'.format(econ.penalty_usd_per_day) if econ.penalty_usd_per_day else '?' }}/day) —
+    not negotiated terms. Directional only.
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="stat-v">${{ '{:,}'.format(econ.total_penalty_usd or 0) }}</div><div class="stat-l">total lateness penalty</div></div>
+    <div class="stat"><div class="stat-v">${{ '{:,}'.format(econ.controllable_penalty_usd or 0) }}</div><div class="stat-l">controllable (a better plan can still claw back)</div></div>
+    <div class="stat"><div class="stat-v">${{ '{:,}'.format(econ.unavoidable_penalty_usd or 0) }}</div><div class="stat-l">unavoidable (already locked in by the calendar)</div></div>
+    <div class="stat"><div class="stat-v">{{ econ.late_count or 0 }}</div><div class="stat-l">late aircraft</div></div>
+    <div class="stat"><div class="stat-v">{{ otd.otd_count }}/{{ otd.n_aircraft }} ({{ otd.otd_pct }}%)</div><div class="stat-l">on-time delivery</div></div>
+    <div class="stat"><div class="stat-v">{{ otd.fleet_lateness_days }}</div><div class="stat-l">fleet lateness days</div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Per-aircraft economics <span class="muted small">(top {{ econ_rows | length }} of {{ econ_rows_total }} by controllable $)</span></h2>
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead>
+      <tr><th>Aircraft</th><th>Deadline day</th><th>Lateness days</th>
+          <th>Penalty</th><th>Controllable</th><th>Unavoidable</th></tr>
+    </thead>
+    <tbody>
+      {% for r in econ_rows %}
+      <tr class="{{ 'row-late' if r.lateness_days > 0 else '' }}">
+        <td class="mono">{{ '%04d' | format(r.aircraft) }}</td>
+        <td>{{ r.deadline_day }}</td>
+        <td>{{ r.lateness_days }}</td>
+        <td>${{ '{:,}'.format(r.penalty_usd) }}</td>
+        <td>${{ '{:,}'.format(r.controllable_penalty_usd) }} <span class="muted small">({{ r.controllable_days }}d)</span></td>
+        <td>${{ '{:,}'.format(r.unavoidable_penalty_usd) }} <span class="muted small">({{ r.floor_days }}d)</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No aircraft economics rows.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>What-if</h2>
+  <p class="muted">Honest note: there is no speculative what-if simulator in
+     this build. The supported loop is: record reality via
+     <code>POST /api/v1/actuals</code> (the single write-path, OR-6), then
+     <strong>Replan</strong> — the deterministic engine recomputes the whole
+     schedule from live state and this page updates. Identical inputs always
+     produce an identical plan, so before/after comparisons are meaningful.</p>
+</section>
+{% endblock %}

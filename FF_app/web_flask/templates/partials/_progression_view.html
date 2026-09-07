@@ -1,0 +1,152 @@
+<!-- Progression View (NEW — FF_app streaks/badges/recap via the /api/ff bridge; additive only, read-only GG-1) -->
+<div id="progression-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Progression</h2>
+        <p class="view-description">
+            FF_app's derived progression layer: streaks (excused-heavy shifts
+            <b>pause</b> a streak, they never break it — GG-3), badges with
+            their earning events attached (GG-4: no badge without named
+            evidence), team level/XP (a pure fold over credited completions,
+            PSY-4), and the deterministic end-of-shift recap card (LB-8: this
+            content needs no LLM). SYNTHETIC mock data.
+        </p>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:end; margin-bottom:16px; flex-wrap:wrap;">
+        <div><label style="font-size:11px; color:#777; display:block;">Team</label>
+            <select id="pgTeam" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></select></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Recap day</label>
+            <input id="pgDay" type="number" min="0" value="0" style="width:70px; padding:6px 10px; border:1px solid #ccc; border-radius:6px;"></div>
+        <div><label style="font-size:11px; color:#777; display:block;">Recap shift</label>
+            <select id="pgShift" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+                <option value="1">S1</option><option value="2">S2</option><option value="3">S3</option>
+            </select></div>
+        <button id="pgLoad" style="padding:7px 16px; border:none; border-radius:6px; background:#1976d2; color:#fff; cursor:pointer;">Load</button>
+        <div id="pgStatus" style="font-size:12px; color:#777; margin-left:8px;"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start;">
+        <div>
+            <h3 style="margin-bottom:8px;">Streak · Level · Badges</h3>
+            <div id="pgTeamCard" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+        <div>
+            <h3 style="margin-bottom:8px;">Shift recap card</h3>
+            <div id="pgRecap"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+        c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const pct = v => v == null ? '—' : (100 * v).toFixed(1) + '%';
+
+    function fail(msg) {
+        document.getElementById('pgStatus').innerHTML =
+            '<span style="color:#c62828;">' + esc(msg) + '</span>';
+    }
+
+    function badgeChip(b) {
+        return '<div style="border:1px solid #e0e0e0; border-left:4px solid #6a1b9a; border-radius:8px; padding:8px 10px; background:#fff; font-size:12px;">' +
+            '<b style="text-transform:capitalize;">' + esc(String(b.badge || '').replace(/_/g, ' ')) + '</b>' +
+            ' · day ' + esc(b.day) + ' S' + esc(b.shift) +
+            '<div style="color:#777;">' + esc(b.evidence) + '</div>' +
+            '<div style="color:#999; font-size:11px;">earned by ' +
+            (b.earning_event_ids || []).length + ' event(s): ' +
+            esc((b.earning_event_ids || []).slice(0, 2).join(', ')) +
+            ((b.earning_event_ids || []).length > 2 ? ', …' : '') + '</div></div>';
+    }
+
+    function renderTeam(d) {
+        const s = d.streak || {};
+        const lv = d.level || {};
+        const badges = d.badges || [];
+        const er = d.earn_rates;
+        let alertHtml = '';
+        if (er && er.alerts && er.alerts.length) {
+            alertHtml = '<div style="border:1px solid #ffcdd2; background:#fff5f5; border-radius:8px; padding:8px 10px; font-size:12px; color:#c62828;">' +
+                '<b>Badge-inflation monitor:</b> ' + esc(JSON.stringify(er.alerts).slice(0, 300)) + '</div>';
+        }
+        document.getElementById('pgTeamCard').innerHTML =
+            '<div style="display:flex; gap:10px;">' +
+            '<div style="flex:1; border:1px solid #e0e0e0; border-radius:8px; background:#fff; padding:12px; text-align:center;">' +
+            '<div style="font-size:26px; font-weight:700; color:' + (s.alive ? '#2e7d32' : '#999') + ';">' + (s.streak || 0) + '</div>' +
+            '<div style="font-size:11px; color:#777;">shift streak' + (s.alive ? ' (alive)' : '') + '</div>' +
+            '<div style="font-size:11px; color:#e65100;">' + (s.paused_shifts || 0) + ' paused (excused — GG-3, never broken)</div></div>' +
+            '<div style="flex:1; border:1px solid #e0e0e0; border-radius:8px; background:#fff; padding:12px; text-align:center;">' +
+            '<div style="font-size:26px; font-weight:700; color:#1976d2;">L' + (lv.level != null ? lv.level : '—') + '</div>' +
+            '<div style="font-size:11px; color:#777;">' + (lv.xp != null ? Math.round(lv.xp).toLocaleString() : '—') + ' XP' +
+            (lv.next_level_xp != null ? ' · next at ' + Math.round(lv.next_level_xp).toLocaleString() : '') + '</div></div></div>' +
+            alertHtml +
+            (badges.map(badgeChip).join('') ||
+             '<div style="color:#777; font-size:12px;">No badges earned yet.</div>');
+    }
+
+    function renderRecap(d) {
+        const r = d.recap || {};
+        const plays = r.top_plays || [];
+        const ex = r.excusals || [];
+        const rec = r.recovery_moments || [];
+        document.getElementById('pgRecap').innerHTML =
+            '<div style="border:1px solid #e0e0e0; border-radius:8px; background:#fff; padding:14px; font-size:13px;">' +
+            '<div style="display:flex; justify-content:space-between;">' +
+            '<b>' + esc(r.team) + ' · day ' + esc(r.day) + ' · S' + esc(r.shift) + '</b>' +
+            '<span style="font-size:11px; color:#999; border:1px solid #e0e0e0; border-radius:10px; padding:2px 8px;">' +
+            esc(r.generated_by || 'deterministic') + '</span></div>' +
+            '<div style="margin:6px 0;">Attainment <b style="color:' +
+            ((r.attainment || 0) >= 1 ? '#2e7d32' : '#e65100') + ';">' + pct(r.attainment) + '</b>' +
+            ' · goal ' + Math.round(r.goal || 0) + ' pts · earned ' + Math.round(r.earned || 0) + ' pts' +
+            ' · banked ' + (r.points_banked != null ? Math.round(r.points_banked).toLocaleString() : '—') + ' XP</div>' +
+            (r.excused_points ? '<div style="color:#e65100; font-size:12px;">' + Math.round(r.excused_points) +
+                ' pts excused: ' + ex.map(e => esc(e.cause)).join(', ') + '</div>' : '') +
+            '<div style="margin-top:8px; font-weight:600; font-size:12px;">Top plays (by point value — GG-2)</div>' +
+            (plays.map(p =>
+                '<div style="border-top:1px solid #eee; padding:5px 0; font-size:12px;">' +
+                '<span style="font-family:monospace;">' + esc(p.task_id) + '</span> · <b>' + Math.round(p.points) + ' pts</b>' +
+                '<div style="color:#777;">' + esc(p.explanation) + '</div></div>').join('') ||
+             '<div style="color:#777; font-size:12px;">No completions credited on this slice.</div>') +
+            (rec.length ? '<div style="margin-top:8px; font-weight:600; font-size:12px;">Recovery moments (PSY-8)</div>' +
+                rec.map(m => '<div style="font-size:12px; color:#2e7d32;">A/C ' + esc(m.aircraft) + ' · ' +
+                    esc(m.delta_days) + 'd · ' + esc(m.evidence) + '</div>').join('') : '') +
+            ((r.streak && r.streak.streak != null)
+                ? '<div style="margin-top:8px; font-size:11px; color:#777;">streak entering next shift: ' +
+                  r.streak.streak + (r.streak.paused_shifts ? ' (' + r.streak.paused_shifts + ' paused)' : '') + '</div>'
+                : '') +
+            (r.mock_data ? '<div style="margin-top:6px; font-size:10px; color:#999;">SYNTHETIC mock data</div>' : '') +
+            '</div>';
+    }
+
+    function load() {
+        const team = document.getElementById('pgTeam').value;
+        const day = document.getElementById('pgDay').value || '0';
+        const shift = document.getElementById('pgShift').value;
+        document.getElementById('pgStatus').textContent = 'loading…';
+        Promise.all([
+            fetch('/api/ff/progression/team/' + encodeURIComponent(team))
+                .then(r => r.json().then(d => ({ok: r.ok, d}))),
+            fetch('/api/ff/recap?team=' + encodeURIComponent(team) +
+                  '&day=' + encodeURIComponent(day) + '&shift=' + encodeURIComponent(shift))
+                .then(r => r.json().then(d => ({ok: r.ok, d}))),
+        ]).then(([teamRes, recapRes]) => {
+            if (!teamRes.ok) return fail(teamRes.d.error || 'progression failed');
+            if (!recapRes.ok) return fail(recapRes.d.error || 'recap failed');
+            document.getElementById('pgStatus').textContent = '';
+            renderTeam(teamRes.d);
+            renderRecap(recapRes.d);
+        }).catch(e => fail('FF backend unreachable: ' + e));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/shiftbook/options').then(r => r.json()).then(o => {
+            document.getElementById('pgTeam').innerHTML =
+                (o.teams || []).map(t => '<option>' + esc(t) + '</option>').join('');
+            document.getElementById('pgDay').value = o.todayDay || 0;
+            document.getElementById('pgShift').value = String(o.currentShift || 1);
+            load();
+        }).catch(e => fail('options failed: ' + e));
+        document.getElementById('pgLoad').addEventListener('click', load);
+    });
+})();
+</script>

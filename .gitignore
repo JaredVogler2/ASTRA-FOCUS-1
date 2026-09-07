@@ -7,3 +7,7 @@ var/
 users.json
 test-results/
 .DS_Store
+upstream/
+FF_app/outputs/
+FF_app/data/fleet50.json.gz
+FF_app/web_flask/data/

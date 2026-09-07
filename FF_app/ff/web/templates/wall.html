@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FF Factory Wall</title>
+<style>
+  :root {
+    --bg: #0b1020; --panel: #131a30; --ink: #eef2ff; --dim: #8b93b8;
+    --up: #4ade80; --down: #f87171; --flat: #94a3b8; --gold: #fbbf24;
+    --od: #38bdf8; --bar: #1e2947;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink); overflow: hidden; height: 100vh;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 22px 40px 10px;
+  }
+  header h1 { font-size: 40px; letter-spacing: 2px; }
+  header .sub { color: var(--dim); font-size: 20px; }
+  .mock {
+    color: var(--gold); font-size: 18px; border: 1px solid var(--gold);
+    border-radius: 8px; padding: 3px 12px;
+  }
+  #panels { position: relative; height: calc(100vh - 150px); }
+  .panel {
+    position: absolute; inset: 0; padding: 10px 40px 20px; opacity: 0;
+    transition: opacity .8s ease; pointer-events: none;
+  }
+  .panel.active { opacity: 1; pointer-events: auto; }
+  .panel h2 { font-size: 30px; margin-bottom: 14px; color: var(--dim);
+              text-transform: uppercase; letter-spacing: 3px; }
+  table { width: 100%; border-collapse: collapse; font-size: 26px; }
+  th { text-align: left; color: var(--dim); font-size: 19px;
+       text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; }
+  td { padding: 9px 14px; }
+  tr.row { background: var(--panel); }
+  tr.row td:first-child { border-radius: 12px 0 0 12px; }
+  tr.row td:last-child { border-radius: 0 12px 12px 0; }
+  tr.spacer { height: 8px; }
+  .rank { font-size: 30px; font-weight: 800; width: 64px; }
+  .rank.r1 { color: var(--gold); }
+  .unit { font-weight: 700; }
+  .att { font-weight: 800; font-size: 28px; }
+  .od { color: var(--od); font-weight: 700; }
+  .support { color: var(--down); font-size: 18px; }
+  .divtag { color: var(--dim); font-size: 18px; }
+  .bar-wrap { background: var(--bar); border-radius: 9px; height: 26px;
+              width: 100%; overflow: hidden; }
+  .bar { background: linear-gradient(90deg, #6366f1, #38bdf8); height: 100%;
+         border-radius: 9px; }
+  .lvl { font-size: 26px; font-weight: 800; width: 90px; }
+  .badges { color: var(--gold); font-size: 20px; }
+  #feedlist { list-style: none; font-size: 26px; }
+  #feedlist li { background: var(--panel); border-radius: 12px;
+                 padding: 13px 18px; margin-bottom: 10px; display: flex;
+                 gap: 16px; align-items: baseline; }
+  .ev-badge-earned  { color: var(--gold); font-weight: 800; }
+  .ev-recovery-moment { color: var(--up); font-weight: 800; }
+  .ev-keystone-cleared { color: var(--od); font-weight: 800; }
+  .ev-streak-extended { color: #c084fc; font-weight: 800; }
+  .ev-goal-crossed { color: var(--flat); font-weight: 800; }
+  .evidence { color: var(--dim); font-size: 20px; }
+  footer { position: fixed; bottom: 0; left: 0; right: 0; display: flex;
+           justify-content: space-between; padding: 10px 40px;
+           color: var(--dim); font-size: 17px; }
+  .dots span { display: inline-block; width: 12px; height: 12px;
+               border-radius: 50%; background: var(--bar); margin: 0 5px; }
+  .dots span.on { background: var(--ink); }
+  #err { color: var(--down); padding: 40px; font-size: 26px; display: none; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FACTORY WALL</h1>
+  <div class="sub" id="paneltitle"></div>
+  {% if mock_data %}<div class="mock">SYNTHETIC MOCK DATA</div>{% endif %}
+</header>
+<div id="err"></div>
+<div id="panels">
+  <div class="panel" id="p0"><h2>Team League — rolling <span class="win"></span>-day attainment · overdrive breaks ties</h2><div class="cols" id="divboards"></div></div>
+  <div class="panel" id="p1"><h2>Crew Board — team × shift units</h2><table id="tsboard"></table></div>
+  <div class="panel" id="p2"><h2>Progression — team levels &amp; badges</h2><table id="progress"></table></div>
+  <div class="panel" id="p3"><h2>Live Feed — recoveries · keystones · streaks · badges</h2><ul id="feedlist"></ul></div>
+</div>
+<footer>
+  <div>attainment = earned ÷ scheduled (capped 100%) · +OD = above-schedule value · excused work leaves the goal visibly</div>
+  <div class="dots" id="dots"><span></span><span></span><span></span><span></span></div>
+</footer>
+<script>
+(function () {
+  var PANELS = 4, ROTATE_MS = 12000, REFRESH_MS = 60000, cur = 0, data = null;
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function pct(x) { return (100 * x).toFixed(1) + "%"; }
+  function rowUnit(e, useDivRank) {
+    var r = useDivRank ? e.division_rank : e.rank;
+    return '<tr class="row">' +
+      '<td class="rank' + (r === 1 ? " r1" : "") + '">' + r + '</td>' +
+      '<td class="unit">' + esc(e.unit) +
+        (e.needs_support ? ' <span class="support">needs support</span>' : "") + '</td>' +
+      '<td class="att">' + pct(e.attainment) + '</td>' +
+      '<td class="od">' + (e.overdrive > 0 ? "+" + pct(e.overdrive) + " OD" : "") + '</td>' +
+      '</tr><tr class="spacer"></tr>';
+  }
+  function renderLeague() {
+    var host = document.getElementById("divboards");
+    var html = "";
+    var divs = Object.keys(data.team_boards_by_division).sort();
+    divs.forEach(function (d) {
+      var rows = data.team_boards_by_division[d].slice(0, 5)
+        .map(function (e) { return rowUnit(e, true); }).join("");
+      html += '<div><h2>' + esc(d) + '</h2><table>' + rows + '</table></div>';
+    });
+    host.innerHTML = html;
+  }
+  function renderTs() {
+    document.getElementById("tsboard").innerHTML =
+      "<tr><th></th><th>Crew</th><th>Attainment</th><th>Overdrive</th></tr>" +
+      data.team_shift_board.slice(0, 12)
+        .map(function (e) { return rowUnit(e, false); }).join("");
+  }
+  function renderProgress() {
+    document.getElementById("progress").innerHTML =
+      "<tr><th>Lvl</th><th>Team</th><th style='width:45%'>To next level</th><th>Badges</th></tr>" +
+      data.progression
+        .slice()
+        .sort(function (a, b) { return b.xp - a.xp; })
+        .slice(0, 12)
+        .map(function (p) {
+          return '<tr class="row">' +
+            '<td class="lvl">L' + p.level + '</td>' +
+            '<td class="unit">' + esc(p.team) +
+              ' <span class="divtag">' + esc(p.division) + '</span></td>' +
+            '<td><div class="bar-wrap"><div class="bar" style="width:' +
+              (100 * p.pct_to_next).toFixed(0) + '%"></div></div></td>' +
+            '<td class="badges">' + "★".repeat(Math.min(p.badge_count, 8)) +
+              (p.badge_count > 8 ? " +" + (p.badge_count - 8) : "") + '</td>' +
+            '</tr><tr class="spacer"></tr>';
+        }).join("");
+  }
+  function renderFeed() {
+    document.getElementById("feedlist").innerHTML =
+      data.feed.slice(0, 9).map(function (f) {
+        var label = f.type.replace(/-/g, " ").toUpperCase();
+        return "<li><span class='ev-" + f.type + "'>" + label + "</span>" +
+          "<span class='unit'>" + esc(f.team || "") + "</span>" +
+          "<span class='evidence'>" + esc(f.evidence).slice(0, 110) + "</span></li>";
+      }).join("");
+  }
+  function renderAll() {
+    if (!data) return;
+    document.querySelectorAll(".win").forEach(function (el) {
+      el.textContent = data.meta.window_days;
+    });
+    renderLeague(); renderTs(); renderProgress(); renderFeed();
+  }
+  function rotate() {
+    cur = (cur + 1) % PANELS;
+    show();
+  }
+  var TITLES = ["Team League by Division", "Team × Shift Crew Board",
+                "Progression & Badges", "Live Feed"];
+  function show() {
+    for (var i = 0; i < PANELS; i++) {
+      document.getElementById("p" + i).classList.toggle("active", i === cur);
+      document.getElementById("dots").children[i].classList.toggle("on", i === cur);
+    }
+    document.getElementById("paneltitle").textContent = TITLES[cur];
+  }
+  function load() {
+    fetch("/api/v1/wall")
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        var err = document.getElementById("err");
+        if (!res.ok) { err.textContent = res.d.error || "wall unavailable"; err.style.display = "block"; return; }
+        err.style.display = "none";
+        data = res.d; renderAll();
+      })
+      .catch(function (e) {
+        var err = document.getElementById("err");
+        err.textContent = "backend unreachable: " + e; err.style.display = "block";
+      });
+  }
+  load(); show();
+  setInterval(rotate, ROTATE_MS);
+  setInterval(load, REFRESH_MS);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!-- Schedule Budget View -->
+<div id="schedule-budget-view" class="view-content">
+    <div class="budget-header">
+        <h2>📊 Schedule Budget - Hours by Task Type</h2>
+        <button class="btn btn-primary" onclick="exportBudgetToExcel()">Export to Excel</button>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="team-stats">
+        <div class="stat-card">
+            <h3>Total Hours</h3>
+            <div class="value" id="budget-total-hours">0</div>
+            <div class="subtext">across all types</div>
+        </div>
+        <div class="stat-card">
+            <h3>Baseline Hours</h3>
+            <div class="value" id="budget-baseline-hours">0</div>
+            <div class="subtext">production work</div>
+        </div>
+        <div class="stat-card">
+            <h3>QA Inspection Hours</h3>
+            <div class="value" id="budget-qa-hours">0</div>
+            <div class="subtext">quality inspections</div>
+        </div>
+        <div class="stat-card">
+            <h3>Date Range</h3>
+            <div class="value" id="budget-date-range">-</div>
+            <div class="subtext">viewing period</div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="budget-filters">
+        <div class="filter-section">
+            <h4>Budget Types</h4>
+            <div class="checkbox-group" id="budgetTypeFilters">
+                <label><input type="checkbox" value="Baseline" checked> Baseline</label>
+                <label><input type="checkbox" value="Rework" checked> Rework</label>
+                <label><input type="checkbox" value="QA Inspection" checked> QA Inspections</label>
+                <label><input type="checkbox" value="Customer Inspection" checked> Customer Inspections</label>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h4>Rework Subtypes</h4>
+            <div class="checkbox-group" id="reworkSubtypeFilters">
+                <label><input type="checkbox" value="NC" checked> NC (Non-Conformance)</label>
+                <label><input type="checkbox" value="PU" checked> PU (Pick-Up)</label>
+                <label><input type="checkbox" value="CI" checked> CI (Customer Issue)</label>
+                <label><input type="checkbox" value="Other" checked> Other</label>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h4>QA Inspection Subtypes</h4>
+            <div class="checkbox-group" id="qaSubtypeFilters">
+                <label><input type="checkbox" value="in-process" checked> In-Process</label>
+                <label><input type="checkbox" value="final" checked> Final</label>
+                <label><input type="checkbox" value="general" checked> General</label>
+            </div>
+        </div>
+
+        <div class="filter-section full-width">
+            <h4>Aircraft</h4>
+            <div class="aircraft-filter-controls">
+                <button class="btn-small" onclick="selectAllAircraft()">Select All</button>
+                <button class="btn-small" onclick="deselectAllAircraft()">Deselect All</button>
+            </div>
+            <div class="checkbox-group" id="aircraftFilters">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="filter-section full-width">
+            <h4>Date Range</h4>
+            <div class="date-range-controls">
+                <div class="date-display">
+                    <span id="dateRangeStart">-</span> to <span id="dateRangeEnd">-</span>
+                </div>
+                <input type="range" id="dateRangeSlider" class="date-slider" min="0" max="100" value="0" step="1">
+                <div class="slider-labels">
+                    <span id="sliderMinDate">-</span>
+                    <span id="sliderMaxDate">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button class="btn btn-primary" onclick="applyBudgetFilters()">Apply Filters</button>
+            <button class="btn btn-secondary" onclick="resetBudgetFilters()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Chart Containers -->
+    <div class="budget-chart-container">
+        <h3 style="margin: 0 0 15px 0; color: #333;">Total Budget (Hours) by Day</h3>
+        <canvas id="budgetChart"></canvas>
+    </div>
+
+    <div class="budget-chart-container" style="margin-top: 20px;">
+        <h3 style="margin: 0 0 15px 0; color: #333;">Number of Jobs per Day</h3>
+        <canvas id="jobCountChart"></canvas>
+    </div>
+
+    <!-- Data Table -->
+    <div class="budget-table-container" style="margin-top: 30px;">
+        <div class="table-header">
+            <h3>Budget Details</h3>
+            <div class="table-info">
+                <span id="budgetTableInfo">Showing 0 records</span>
+            </div>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table id="budgetTable" class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Line Number</th>
+                        <th>Budget Type</th>
+                        <th>Budget Subtype</th>
+                        <th>Total Hours</th>
+                    </tr>
+                </thead>
+                <tbody id="budgetTableBody">
+                    <!-- Will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .budget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .budget-filters {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .filter-section.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .filter-section h4 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .checkbox-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .checkbox-group label:hover {
+        background: #f0f0f0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+    }
+
+    .aircraft-filter-controls {
+        margin-bottom: 12px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-small:hover {
+        background: #e9ecef;
+    }
+
+    .date-range-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .date-display {
+        font-size: 14px;
+        font-weight: 500;
+        padding: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .date-slider {
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        outline: none;
+        -webkit-appearance: none;
+        background: linear-gradient(to right, #4CAF50 0%, #4CAF50 0%, #ddd 0%, #ddd 100%);
+    }
+
+    .date-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #4CAF50;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .date-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #4CAF50;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .slider-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .filter-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 10px;
+    }
+
+    .budget-chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+        min-height: 500px;
+    }
+
+    .budget-table-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .data-table thead th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .data-table tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .table-info {
+        font-size: 14px;
+        color: #666;
+    }
+</style>

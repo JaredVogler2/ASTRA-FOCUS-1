@@ -1,0 +1,126 @@
+<!-- Commitments View (NEW — Step 5b leadership tab; additive only) -->
+<div id="commitments-view" class="ios-view-content view-content">
+    <div class="staffing-header">
+        <h2>Committed Delivery Dates</h2>
+        <p class="view-description">
+            All aircraft past control station 733 plus the next 8 to
+            deliver carry committed dates. Dates move only for real,
+            sustained reasons — every change is logged with its measured
+            cause. Aircraft in early flow are shown without hard dates:
+            their work is still releasing and rework is still being written.
+        </p>
+    </div>
+
+    <div id="commitKpis" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:20px;"></div>
+
+    <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; align-items:start;">
+        <div>
+            <h3 style="margin-bottom:8px;">Committed aircraft</h3>
+            <div style="max-height:520px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead style="position:sticky; top:0; background:#f5f5f5;">
+                        <tr>
+                            <th style="text-align:left; padding:8px;">Line</th>
+                            <th style="text-align:left; padding:8px;">Station</th>
+                            <th style="text-align:left; padding:8px;">Committed</th>
+                            <th style="text-align:left; padding:8px;">Projected</th>
+                            <th style="text-align:right; padding:8px;">Days late</th>
+                        </tr>
+                    </thead>
+                    <tbody id="commitTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div>
+            <h3 style="margin-bottom:8px;">Date changes this run</h3>
+            <div id="commitChanges" style="display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto;"></div>
+            <h3 style="margin:16px 0 8px;">Early flow — not committed</h3>
+            <div id="commitEarly" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    let loaded = false;
+
+    function kpi(title, value, hint, color) {
+        return '<div style="border:1px solid #e0e0e0; border-left:4px solid ' + (color || '#1976d2') +
+            '; border-radius:8px; padding:12px; background:#fff;">' +
+            '<div style="font-size:11px; text-transform:uppercase; color:#777;">' + title + '</div>' +
+            '<div style="font-size:24px; font-weight:600;">' + value + '</div>' +
+            (hint ? '<div style="font-size:11px; color:#999;">' + hint + '</div>' : '') + '</div>';
+    }
+
+    function stationBadge(st) {
+        const colors = { 'LATE_TO_DELIVERY': '#c62828', 'POST_FAL': '#e65100' };
+        const c = colors[st] || (st && st.indexOf('FA') === 0 ? '#1565c0' : '#757575');
+        return '<span style="background:' + c + '18; color:' + c +
+            '; padding:2px 8px; border-radius:10px; font-size:11px;">' + (st || '—') + '</span>';
+    }
+
+    function render(d) {
+        if (!d.available) {
+            document.getElementById('commitKpis').innerHTML =
+                '<div style="color:#777;">This schedule has no projection block (' +
+                (d.reason || 'unknown') + ').</div>';
+            return;
+        }
+        const late = d.committed.filter(r => r.latenessDays > 0);
+        const st = d.stability || {};
+        document.getElementById('commitKpis').innerHTML =
+            kpi('Committed aircraft', d.committed.length, 'past CS 733 + next 8', '#1976d2') +
+            kpi('Late to contract', late.length, 'past their CS-744 date', late.length ? '#c62828' : '#2e7d32') +
+            kpi('Early flow', d.earlyFlow.length, 'not committed', '#757575') +
+            kpi('Near-term slots defended',
+                st.keptPct != null ? st.keptPct + '%' : '—',
+                st.inHorizon ? (st.keptIncumbentSlots + ' of ' + st.inHorizon + ' in 3-day window')
+                             : 'fresh plan — no incumbent', '#2e7d32');
+
+        document.getElementById('commitTableBody').innerHTML = d.committed.map(r =>
+            '<tr style="border-top:1px solid #eee;' + (r.latenessDays > 0 ? ' background:#fff5f5;' : '') + '">' +
+            '<td style="padding:6px 8px; font-weight:600;">' + r.line + '</td>' +
+            '<td style="padding:6px 8px;">' + stationBadge(r.station) + '</td>' +
+            '<td style="padding:6px 8px; font-weight:600;">' + r.committedDate + '</td>' +
+            '<td style="padding:6px 8px; color:#777;">' + r.projectedDate + '</td>' +
+            '<td style="padding:6px 8px; text-align:right; color:' +
+            (r.latenessDays > 0 ? '#c62828; font-weight:600' : '#2e7d32') + ';">' +
+            (r.latenessDays > 0 ? '+' + r.latenessDays : 'on time') + '</td></tr>').join('');
+
+        document.getElementById('commitChanges').innerHTML = d.changes.length === 0
+            ? '<div style="color:#777; font-size:13px; border:1px solid #e0e0e0; border-radius:8px; padding:10px;">' +
+              'No committed date moved this run — jitter under 2 days is held; small moves need 2 consecutive replans.</div>'
+            : d.changes.map(c =>
+                '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px 10px; font-size:12px; background:#fff;">' +
+                '<b>line ' + c.line + '</b> ' +
+                (c.old === null
+                    ? '<span style="color:#777;">initial commitment</span>'
+                    : '<span style="color:' + (c.delta_days > 0 ? '#c62828' : '#2e7d32') + ';">' +
+                      (c.delta_days > 0 ? 'slipped +' + c.delta_days + 'd' : 'improved ' + c.delta_days + 'd') +
+                      '</span> <span style="color:#777;">— ' + c.reason + '</span>') +
+                '</div>').join('');
+
+        document.getElementById('commitEarly').innerHTML = d.earlyFlow.map(r =>
+            '<span style="border:1px solid #e0e0e0; border-radius:8px; padding:4px 10px; font-size:12px; background:#fff;">line ' +
+            r.line + ' <span style="color:#999;">~' + r.projectedDate + '</span></span>').join('') ||
+            '<span style="color:#777; font-size:12px;">none</span>';
+    }
+
+    function load() {
+        if (loaded) return;
+        loaded = true;
+        fetch('/api/projection').then(r => r.json()).then(render)
+            .catch(e => {
+                document.getElementById('commitKpis').innerHTML =
+                    '<div style="color:#c62828;">Failed to load: ' + e + '</div>';
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.view-tab[data-view="commitments"], .ios-nav-tab[data-view="commitments"]')
+            .forEach(b => b.addEventListener('click', load));
+        // load eagerly too, so the tab is instant
+        load();
+    });
+})();
+</script>

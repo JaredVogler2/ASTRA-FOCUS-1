@@ -6,17 +6,20 @@ import pytest
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-sys.path.insert(0,str(ROOT/'upstream'/'FF_app'))
+sys.path.insert(0,str(ROOT/'FF_app'))
 
 @pytest.fixture
 def app(tmp_path,monkeypatch):
+    for key in ['ASTRA_PUBLIC_ORIGIN','RENDER_EXTERNAL_URL','ASTRA_ADMIN_USERNAME',
+                'ASTRA_ADMIN_PASSWORD','ASTRA_GENERATE_SAMPLE_DATA']:
+        monkeypatch.delenv(key,raising=False)
     for key in ['FF_ACTUALS','FF_EXCUSALS','FF_COMMITMENTS','FF_GAME_EVENTS','FF_LLM_AUDIT','FF_ENVELOPE_DIR','MAX_SCHEDULES_DIR','FF_SCHEDULE','FF_SCORECARD','ASTRA_USERS_FILE']:
         monkeypatch.delenv(key,raising=False)
     monkeypatch.setenv('ASTRA_DEMO','1')
     monkeypatch.setenv('ASTRA_LEGACY','0')
     monkeypatch.setenv('FF_SECRET_KEY','astra-tests-only-secret')
     monkeypatch.setenv('ASTRA_STATE_DIR',str(tmp_path))
-    monkeypatch.setenv('FF_DATA',str(ROOT/'upstream/FF_app/data/mini/fleet.json.gz'))
+    monkeypatch.setenv('FF_DATA',str(ROOT/'FF_app/data/mini/fleet.json.gz'))
     from astra_focus.app import create_app
     result=create_app()
     result.config['TESTING']=True

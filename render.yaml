@@ -1,0 +1,40 @@
+# A password-protected installation with a generated, clearly labeled sample fleet.
+# Review the paid compute and disk charges in Render before creating the service.
+services:
+  - type: web
+    name: astra-focus-1
+    runtime: python
+    plan: 1c-2g
+    region: virginia
+    branch: main
+    numInstances: 1
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -c gunicorn.conf.py wsgi:app
+    healthCheckPath: /readyz
+    maxShutdownDelaySeconds: 300
+    autoDeployTrigger: 'off'
+    disk:
+      name: focus-state
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.11
+      - key: ASTRA_STATE_DIR
+        value: /var/data/astra-focus
+      - key: ASTRA_DEMO
+        value: '0'
+      - key: ASTRA_GENERATE_SAMPLE_DATA
+        value: '1'
+      - key: ASTRA_AIRCRAFT
+        value: '50'
+      - key: ASTRA_LEGACY
+        value: '1'
+      - key: FF_LLM_PROVIDER
+        value: none
+      - key: FF_SECRET_KEY
+        generateValue: true
+      - key: ASTRA_ADMIN_USERNAME
+        sync: false
+      - key: ASTRA_ADMIN_PASSWORD
+        sync: false

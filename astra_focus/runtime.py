@@ -4,17 +4,20 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FF_ROOT = ROOT / 'upstream' / 'FF_app'
+FF_ROOT = ROOT / 'FF_app'
 
 def configure():
     if not (FF_ROOT / 'ff' / 'domain.py').exists():
-        raise RuntimeError('Run git submodule update --init --recursive with access to FABLE_FOCUS_REVIEW.')
+        raise RuntimeError('Bundled FF_app source is missing. Use a complete ASTRA-FOCUS-1 checkout or source ZIP.')
     sys.path.insert(0, str(FF_ROOT)) if str(FF_ROOT) not in sys.path else None
     state_dir = Path(os.environ.get('ASTRA_STATE_DIR', ROOT / 'var')).resolve()
     state_dir.mkdir(parents=True, exist_ok=True)
     demo = os.environ.get('ASTRA_DEMO', '0') == '1'
     if not demo and not os.environ.get('FF_SECRET_KEY'):
         raise RuntimeError('FF_SECRET_KEY is required outside explicit ASTRA_DEMO=1 mode.')
+    if not demo:
+        from .bootstrap import bootstrap_account
+        bootstrap_account(state_dir)
     if demo:
         os.environ.setdefault('FF_ENV', 'dev')
         secret_file = state_dir / 'session.key'
@@ -38,7 +41,7 @@ def configure():
     if data_path:
         if not Path(data_path).is_file():
             raise RuntimeError('FF_DATA does not exist; refusing fallback to a different dataset.')
-    elif demo:
+    elif demo or os.environ.get('ASTRA_GENERATE_SAMPLE_DATA', '0') == '1':
         from ff.data.generator import generate_fleet
         from ff.data.loader import save_json_gz
         fixture = state_dir / 'fleet.json.gz'
@@ -51,5 +54,5 @@ def configure():
             save_json_gz(fleet.to_dict(), str(fixture))
         os.environ['FF_DATA'] = str(fixture)
     else:
-        raise RuntimeError('FF_DATA is required outside explicit demo mode.')
+        raise RuntimeError('Set FF_DATA to a fleet file, or explicitly enable ASTRA_GENERATE_SAMPLE_DATA=1.')
     return state_dir, demo
